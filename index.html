@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hoshin Kanri Live</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#121116; --panel:#1a1922; --panel2:#201f2a; --line:#2d2c38; --text:#eee8f0; --sub:#9b96ab;
+  --obj:#2f9e73; --obj-soft:#1d3f34; --init:#6a63d1; --init-soft:#2c2a4f; --met:#e0a634; --met-soft:#4a3a1c;
+  --grey:#48454f; --accent:#e0764c;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  box-sizing:border-box;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;min-height:100%}
+h1,h2,h3{font-weight:700;margin:0}
+.stickytop{position:sticky;top:0;z-index:20;background:rgba(18,17,22,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topbar{padding:calc(10px + env(safe-area-inset-top,0px)) 20px 10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{font-size:17px;font-weight:800;letter-spacing:.2px;margin-right:6px}
+.brand span{color:var(--accent)}
+.filectl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--sub)}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:7px 13px;border-radius:8px;transition:border-color .15s}
+button:hover{border-color:#59526b}
+button.primary{background:var(--init);border-color:var(--init);color:#fff}
+button.primary:hover{background:#7a72e6}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--grey);display:inline-block;margin-right:5px}
+.dot.live{background:#3ecf8e;box-shadow:0 0 0 0 rgba(62,207,142,.6);animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(62,207,142,.55)}70%{box-shadow:0 0 0 7px rgba(62,207,142,0)}100%{box-shadow:0 0 0 0 rgba(62,207,142,0)}}
+.tabs{display:flex;gap:6px;padding:12px 20px 10px;flex-wrap:wrap}
+.tab{padding:9px 16px;border-radius:9px 9px 0 0;background:transparent;border:1px solid transparent;color:var(--sub);cursor:pointer;font-size:14px;font-weight:600}
+.tab.active{background:var(--panel);color:var(--text);border:1px solid var(--line);border-bottom-color:var(--panel)}
+main{padding:16px 20px 60px;max-width:1600px;margin:0 auto}
+.view{display:none;background:var(--panel);border:1px solid var(--line);border-radius:0 12px 12px 12px;padding:22px}
+.view.active{display:block}
+.hint{color:var(--sub);font-size:13px;margin:0 0 16px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--sub);margin-bottom:16px;align-items:center}
+.legend .ln{display:inline-block;width:22px;height:0;border-top:3px solid var(--sub);vertical-align:3px;margin-right:5px}
+.legend .ln.dash{border-top-style:dashed}
+.scrollx{overflow-x:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:#0e0d12}
+svg{max-width:100%;height:auto;display:block;margin:0 auto}
+.blk,.linkpath{transition:opacity .18s ease}
+.blk rect,.blk polygon{stroke:rgba(0,0,0,.25);stroke-width:1}
+.blk-obj rect{fill:var(--obj)} .blk-met rect{fill:var(--met)} .blk-init rect,.blk-init polygon{fill:var(--init)}
+.blk text{fill:#fff;font-size:12px;font-weight:600}
+.blk .sub{font-style:italic}
+.blk.grey rect{fill:var(--grey)} .blk.grey text{fill:#c8c4d2}
+.initnode,.entitynode{cursor:pointer}
+/* Goals tab */
+.goalgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:1200px;margin:0 auto}
+.goalrow-leftover{display:flex;justify-content:center;flex-wrap:wrap;gap:18px;max-width:1200px;margin:0 auto}
+.goalrow-leftover .goalcard{width:380px}
+.goalcard{background:var(--panel2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.ghead{background:var(--init);color:#fff;padding:13px 18px;font-weight:700;font-size:15px}
+.gbody{padding:14px 16px}
+.gbody h4{font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--sub);margin-bottom:8px}
+.empty{color:var(--sub);font-size:13px;font-style:italic}
+/* Full matrix tables */
+table{border-collapse:collapse;font-size:12.5px}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:center;white-space:normal;vertical-align:middle}
+th.rowlabel,td.rowlabel{position:sticky;left:0;background:var(--panel);min-width:220px;max-width:280px}
+th.hdr-obj,th.hdr-met{min-width:130px}
+.hdr-obj{background:var(--obj-soft);color:#bdeed4}
+.hdr-met{background:var(--met-soft);color:#ffe4ac}
+.hdr-init{background:var(--init-soft);color:#dcd9ff}
+.hdr-blue.rowlabel{background:hsl(210 55% 24%);color:#bfe0ff}
+.hdr-purple.rowlabel{background:hsl(280 45% 26%);color:#e8d6ff}
+.toggle2{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.toggle2 button.on{background:var(--init);border-color:var(--init);color:#fff}
+.xmatrix{border-collapse:collapse}
+.xm-center{display:flex;justify-content:center}
+.xmatrix .xm-blank{border:none;background:transparent}
+.xmatrix th,.xmatrix td{border:1px solid var(--line);padding:6px;text-align:center;vertical-align:middle;white-space:nowrap}
+.xm-rot{writing-mode:vertical-rl;white-space:nowrap;font-size:11px;font-weight:600;color:#eee8f0;margin:0 auto;padding:8px 3px;cursor:text}
+.xm-obj-head{background:var(--obj-soft);min-width:32px}
+.xm-met-head{background:var(--met-soft);min-width:32px}
+.xm-cross{padding:0;background:var(--panel);line-height:0}
+.xm-goal-label{background:hsl(305 35% 20%);color:#f0d9f5;font-weight:700;text-align:left;padding:8px 14px;cursor:text}
+.xm-init-label{background:hsl(210 40% 20%);color:#bfe0ff;font-weight:700;text-align:left;padding:8px 14px;cursor:text}
+.xm-dash{color:#6b6878;min-width:32px}
+.xmatrix td{min-width:32px}
+.xm-cell{cursor:pointer}
+.xm-cell:hover{outline:2px solid rgba(255,255,255,.35);outline-offset:-2px}
+.xm-editor{display:flex;flex-direction:column;align-items:center;gap:10px}
+.xm-edge-top,.xm-edge-bottom{display:flex;justify-content:center}
+.xm-middlerow{display:flex;align-items:center;gap:10px;max-width:100%}
+.xm-add{width:34px;height:34px;border-radius:50%;background:#fff;color:#121116;border:none;font-size:18px;font-weight:800;cursor:pointer;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:0;line-height:1}
+.xm-add:hover{background:#e8e6ee;transform:scale(1.06)}
+.xm-toolbar{display:flex;gap:8px;margin-bottom:14px}
+.xm-toolbar button:disabled{opacity:.35;cursor:default}
+/* detail tab */
+.detailtop{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.detailwrap{display:flex;gap:20px;align-items:flex-start}
+.initpills{display:flex;flex-direction:column;gap:8px;min-width:220px;max-width:260px;flex-shrink:0}
+.initpill{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer;transition:border-color .15s,background .15s}
+.initpill:hover{border-color:#59526b}
+.initpill.active{border-color:var(--init);background:var(--init-soft)}
+.ipname{font-weight:700;font-size:13.5px}
+.ipowner{font-size:11.5px;color:var(--sub);font-style:italic;margin-top:2px}
+.detailmain{flex:1;min-width:0}
+.notesbox{margin-top:20px}
+.notesbox h4{font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--sub);margin-bottom:8px}
+.notesbox textarea{width:100%;min-height:110px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);font:inherit;font-size:13.5px;padding:12px 14px;resize:vertical}
+.notesbox textarea:focus{outline:none;border-color:var(--init)}
+.notesblock{margin-top:20px;max-width:640px;margin-left:auto;margin-right:auto;text-align:left}
+.notesblock h4{font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:#9b96ab;margin-bottom:8px}
+.notestext{background:#201f2a;border:1px solid #2d2c38;border-radius:10px;color:#eee8f0;font-size:13.5px;padding:12px 14px;white-space:pre-wrap;text-align:left}
+.shapepick{font-size:12.5px;color:var(--sub);display:flex;align-items:center;gap:6px;cursor:pointer;margin-left:auto}
+select{font:inherit;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.viewpick{display:flex;gap:6px}
+.textcard{max-width:640px;margin:0 auto}
+.textcard .head{background:var(--init);color:#fff;padding:14px 18px;border-radius:10px;margin-bottom:16px}
+.textcard .head .own{font-size:12.5px;opacity:.85;font-style:italic;margin-top:3px}
+.sect{margin-bottom:14px}
+.sect h4{font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--sub);margin-bottom:8px}
+.corritem{display:grid;grid-template-columns:1fr 128px;align-items:center;gap:12px;padding:9px 13px;border-radius:8px;margin-bottom:7px;background:var(--panel2);border-left-width:6px;border-left-style:solid}
+.badge{justify-self:center;font-size:10.5px;padding:4px 13px;border-radius:20px;font-weight:800;white-space:nowrap;border:2px solid;letter-spacing:.02em}
+.center{text-align:center;padding:40px;color:var(--sub)}
+.exportrow{display:flex;justify-content:flex-end;margin-bottom:12px}
+.toggle2 .exportbtns{margin-left:auto;display:flex;gap:6px}
+.detailtop .exportbtn{margin-left:auto}
+</style>
+</head>
+<body>
+<div class="stickytop">
+<div class="topbar">
+  <div class="brand">Hoshin<span>Kanri</span> Live</div>
+  <div class="filectl">
+    <button class="primary" id="btnOpen">📂 Open File</button>
+    <input type="file" id="fileInput" accept=".xlsx,.xlsm,.zip,.json" style="display:none">
+    <button id="btnReload">↻ Reload now</button>
+    <span id="fileStatus"><span class="dot" id="liveDot"></span>No file loaded</span>
+  </div>
+  <button class="primary" data-export="all" style="margin-left:auto">⬇ Export all</button>
+</div>
+<div class="tabs" id="tabs">
+  <div class="tab active" data-tab="goals">Goals</div>
+  <div class="tab" data-tab="overview">Overview</div>
+  <div class="tab" data-tab="matrix">Matrix</div>
+  <div class="tab" data-tab="detail">Initiative-Wise Details</div>
+</div>
+</div>
+<main>
+  <section class="view active" id="view-goals"></section>
+  <section class="view" id="view-overview"></section>
+  <section class="view" id="view-matrix"></section>
+  <section class="view" id="view-detail"></section>
+</main>
+
+<script>
+// DATA now lives entirely in the browser and is edited directly (via the Matrix tab's "Full Matrix"
+// view). Excel import is still available as a one-time way to bring in existing data, but nothing
+// auto-polls the file afterward, so it can never silently overwrite edits made on the page.
+let DATA = { objectives:[], metrics:[], goals:[], initiatives:[] };
+let detailInit = null, detailMode = 'sankey', matrixMode = 'full', sankeyShape = 'trapezoid';
+let idCounter = 1, objColorIdx = 0, metColorIdx = 0;
+let undoStack = [], redoStack = [];
+
+function newId(){ return 'x' + (idCounter++); }
+function snapshot(){ return JSON.parse(JSON.stringify(DATA)); }
+function pushUndo(){ undoStack.push(snapshot()); if(undoStack.length>60) undoStack.shift(); redoStack = []; }
+function doUndo(){ if(!undoStack.length) return; redoStack.push(snapshot()); DATA = undoStack.pop(); renderAll(); }
+function doRedo(){ if(!redoStack.length) return; undoStack.push(snapshot()); DATA = redoStack.pop(); renderAll(); }
+
+// ---------- Direct cell access (immune to sheet used-range offsets) ----------
+function cellAt(ws, r, c){
+  if(!ws) return '';
+  const addr = XLSX.utils.encode_cell({r:r, c:c});
+  const cd = ws[addr];
+  return (cd && cd.v !== undefined && cd.v !== null) ? cd.v : '';
+}
+function titleStr(v){ if(typeof v === 'number') return ''; return String(v||'').trim(); }
+function num(v){ const n = Number(v); return isNaN(n) ? 0 : n; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function wrapPlain(t, max){ t = String(t||''); return t.length>max ? t.slice(0,max-1)+'…' : t; }
+function getSheet(wb, re){ const n = wb.SheetNames.find(x=>re.test(x)); return n ? wb.Sheets[n] : null; }
+function connSummary(corrMap){ let s=0,m=0; Object.values(corrMap).forEach(w=>{ if(w>=5)s++; else if(w>=1)m++; }); return {s,m}; }
+function sortByStrength(list, corrMap){ return [...list].sort((a,b)=> (corrMap[b.id]||0)-(corrMap[a.id]||0)); }
+
+// ---------- Colors ----------
+// Objectives: cool hues (blue/green/teal/purple/cyan). Metrics: warm hues (orange/gold/rust/yellow/lime).
+// Each item gets its color once at creation time (stored on the item), so colors never shift around
+// just because other items are added or removed elsewhere.
+const OBJ_HUES=[210,150,175,255,195,235,265,145,220,185,245,205,160,275,200];
+const MET_HUES=[50,5,90,35,15,65,100,25,45,0,75,55,115,20,85];
+function paletteHsl(hues,n){ const h=hues[(n-1)%hues.length]; const light=42+((n-1)%3)*8; const sat=50+((n-1)%2)*8; return `hsl(${h} ${sat}% ${light}%)`; }
+function objColor(n){ return paletteHsl(OBJ_HUES, n); }
+function metColor(n){ return paletteHsl(MET_HUES, n); }
+function nextObjColor(){ objColorIdx++; return objColor(objColorIdx); }
+function nextMetColor(){ metColorIdx++; return metColor(metColorIdx); }
+function bgFor(kind, weight){
+  if(weight>=5) return kind==='obj' ? 'hsl(152 45% 22%)' : kind==='met' ? 'hsl(38 70% 26%)' : 'hsl(305 45% 26%)';
+  if(weight>=1) return kind==='obj' ? 'hsl(152 35% 42%)' : kind==='met' ? 'hsl(38 55% 46%)' : 'hsl(305 35% 46%)';
+  return 'transparent';
+}
+function dotIcon(w){ if(w>=5) return '<span style="color:#fff;font-size:15px;font-weight:700">●</span>'; if(w>=1) return '<span style="color:#fff;font-size:13px">◐</span>'; return ''; }
+function xIcon(w){ if(w>=5) return '<span style="color:#fff;font-size:15px;font-weight:700">●</span>'; if(w>=1) return '<span style="color:#fff;font-size:13px">◐</span>'; return '<span style="color:#6b6878;font-size:13px">○</span>'; }
+function badgeHtml(strong, color){
+  if(strong) return `<span class="badge" style="background:${color};border-color:${color};color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)">Strong</span>`;
+  return `<span class="badge" style="background:transparent;border-color:${color};border-style:dashed;color:${color}">Medium</span>`;
+}
+function corrItemHtml(title, color, strong){
+  return `<div class="corritem" style="border-left-color:${color}"><span>${esc(title)}</span>${badgeHtml(strong,color)}</div>`;
+}
+
+// ---------- Excel import (converts into the same editable id-based model) ----------
+function parseWorkbook(wb){
+  const oim = getSheet(wb, /objective/i);
+  const goalsWs = getSheet(wb, /goal/i);
+  const objectives=[], metrics=[], initiatives=[], goals=[];
+  const objNumToId={}, metNumToId={};
+  // Objectives built farthest-from-center first (matches display order directly, no reverse needed).
+  for(let n=15;n>=1;n--){
+    const title = titleStr(cellAt(oim,3,16-n));
+    if(title){ const id=newId(); objNumToId[n]=id; objectives.push({id, title, color: nextObjColor()}); }
+  }
+  for(let n=1;n<=15;n++){
+    const title = titleStr(cellAt(oim,3,20+n));
+    if(title){ const id=newId(); metNumToId[n]=id; metrics.push({id, title, color: nextMetColor()}); }
+  }
+  for(let n=1;n<=15;n++){
+    const r = 5+(n-1);
+    const title = titleStr(cellAt(oim,r,18));
+    if(!title) continue;
+    const owner = titleStr(cellAt(oim,r,19));
+    const objCorr={}, metCorr={};
+    for(let k=1;k<=15;k++){ if(objNumToId[k]){ const w=num(cellAt(oim,r,16-k)); if(w>0) objCorr[objNumToId[k]]=w; } }
+    for(let k=1;k<=15;k++){ if(metNumToId[k]){ const w=num(cellAt(oim,r,20+k)); if(w>0) metCorr[metNumToId[k]]=w; } }
+    initiatives.push({id:newId(), title, owner, objCorr, metCorr, notes:''});
+  }
+  for(let n=5;n>=1;n--){
+    const r = 5+(n-1);
+    const title = titleStr(cellAt(goalsWs,r,18));
+    if(!title) continue;
+    const objCorr={};
+    for(let k=1;k<=15;k++){ if(objNumToId[k]){ const w=num(cellAt(goalsWs,r,16-k)); if(w>0) objCorr[objNumToId[k]]=w; } }
+    goals.push({id:newId(), title, objCorr});
+  }
+  return {objectives, metrics, initiatives, goals};
+}
+
+// ---------- File loading (one-time import only — no silent auto-overwrite of edits) ----------
+const statusEl = document.getElementById('fileStatus');
+function setStatus(name, live){
+  statusEl.innerHTML = `<span class="dot ${live?'live':''}" id="liveDot"></span>${esc(name)} · updated ${new Date().toLocaleTimeString()}`;
+}
+// Restoring a saved state (from an Export-all .zip or a raw .json) puts back the exact same data,
+// including ids and color assignments, so undo history starts clean but everything else matches.
+function serializeState(){ return JSON.stringify({app:'hoshin-kanri-live', version:1, DATA, idCounter, objColorIdx, metColorIdx}); }
+function restoreState(obj){
+  if(!obj || !obj.DATA) throw new Error('Not a recognized Hoshin Kanri save file.');
+  DATA = obj.DATA;
+  idCounter = obj.idCounter || 1; objColorIdx = obj.objColorIdx || 0; metColorIdx = obj.metColorIdx || 0;
+  undoStack = []; redoStack = [];
+}
+async function loadFromArrayBuffer(buf, name, live){
+  const wb = XLSX.read(buf, {type:'array'});
+  DATA = parseWorkbook(wb);
+  undoStack = []; redoStack = [];
+  setStatus(name, live);
+  renderAll();
+}
+async function loadFromZip(buf, name, live){
+  if(!window.JSZip) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+  const zip = await JSZip.loadAsync(buf);
+  const f = zip.file('hoshin-state.json');
+  if(!f) throw new Error('This zip has no hoshin-state.json — it wasn\'t made by this app\'s "Export all".');
+  restoreState(JSON.parse(await f.async('string')));
+  setStatus(name, live);
+  renderAll();
+}
+async function loadFromJson(buf, name, live){
+  restoreState(JSON.parse(new TextDecoder().decode(buf)));
+  setStatus(name, live);
+  renderAll();
+}
+async function loadAnyFile(file, live){
+  try{
+    const buf = await file.arrayBuffer();
+    const ext = (file.name.split('.').pop()||'').toLowerCase();
+    if(ext==='zip') await loadFromZip(buf, file.name, live);
+    else if(ext==='json') await loadFromJson(buf, file.name, live);
+    else await loadFromArrayBuffer(buf, file.name, live);
+  }catch(e){ console.error(e); alert('Could not open that file: ' + e.message); }
+}
+document.getElementById('btnOpen').onclick = ()=> document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange = async (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  await loadAnyFile(f, false);
+  e.target.value = ''; // so picking the same file again later still fires onchange
+};
+document.getElementById('btnReload').onclick = ()=> document.getElementById('fileInput').click();
+
+// ---------- Tabs ----------
+document.getElementById('tabs').addEventListener('click', e=>{
+  const t = e.target.closest('.tab'); if(!t) return;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('view-'+t.dataset.tab).classList.add('active');
+});
+
+// ---------- SVG text wrapping ----------
+function wrapLines(text, maxChars, maxLines){
+  text = String(text||'');
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines = []; let cur = '';
+  for(let i=0;i<words.length;i++){
+    const test = cur ? cur+' '+words[i] : words[i];
+    if(test.length>maxChars && cur){ lines.push(cur); cur=words[i]; if(lines.length===maxLines) break; }
+    else cur=test;
+  }
+  if(lines.length<maxLines && cur) lines.push(cur);
+  const usedWords = lines.join(' ').split(/\s+/).filter(Boolean).length;
+  if(usedWords < words.length && lines.length){
+    lines[lines.length-1] = lines[lines.length-1].replace(/.{0,3}$/,'').trim() + '…';
+  }
+  return lines.length ? lines : [''];
+}
+function svgText(cx, cy, text, o){
+  o = o||{}; const maxChars=o.maxChars||20, maxLines=o.maxLines||2, lh=o.lineHeight||14;
+  const lines = wrapLines(text, maxChars, maxLines);
+  const startY = cy - (lines.length-1)*lh/2 + 4;
+  return lines.map((l,i)=>`<tspan x="${cx}" y="${startY+i*lh}">${esc(l)}</tspan>`).join('');
+}
+
+// ---------- Block + link primitives ----------
+function blockRect(x,y,w,h,cls,title,sub,fillColor,extra){
+  const maxChars = Math.max(8, Math.round(w/8.2));
+  const titleCY = sub ? y+h*0.38 : y+h/2;
+  const titleLines = sub ? (h>=60?2:1) : (h>=64?3:2);
+  let out = `<g class="blk ${cls}" ${extra||''}><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10"${fillColor?` fill="${fillColor}"`:''}/>`;
+  out += `<text text-anchor="middle">${svgText(x+w/2, titleCY, title, {maxChars, maxLines:titleLines, lineHeight:14})}</text>`;
+  if(sub) out += `<text class="sub" text-anchor="middle">${svgText(x+w/2, y+h*0.78, sub, {maxChars, maxLines:1, lineHeight:14})}</text>`;
+  out += `</g>`;
+  return out;
+}
+function strokeLine(x1,y1,x2,y2,color,w,extra){
+  if(w<1) return '';
+  const dx=(x2-x1)/2, strong = w>=5;
+  return `<path class="linkpath" d="M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}" stroke="${color}" stroke-width="${strong?3:2}" fill="none" ${strong?'':'stroke-dasharray="7 6"'} opacity="1" stroke-linecap="round" ${extra||''}/>`;
+}
+function ribbon(x1,y0,y1,x2,Y0,Y1,color,opacity){
+  const dx=(x2-x1)/2;
+  return `<path d="M${x1},${y0} C${x1+dx},${y0} ${x2-dx},${Y0} ${x2},${Y0} L${x2},${Y1} C${x2-dx},${Y1} ${x1+dx},${y1} ${x1},${y1} Z" fill="${color}" opacity="${opacity}" stroke="none"/>`;
+}
+function layoutCol(items, bh, gap){
+  const pos = items.map((it,i)=> i*(bh+gap));
+  return {pos, total: items.length? items.length*(bh+gap)-gap : 0};
+}
+function spreadCol(items, bh, availableH){
+  const tight = layoutCol(items, bh, 14);
+  if(!items.length) return {pos:[], total:0};
+  if(tight.total>=availableH || items.length<=1){
+    const off=(availableH-tight.total)/2;
+    return {pos: tight.pos.map(p=>p+off)};
+  }
+  const gap = (availableH - items.length*bh)/(items.length+1);
+  return {pos: items.map((_,i)=> gap + i*(bh+gap))};
+}
+
+// ---------- Overview: solid/dashed lines, full-width, spread columns, clickable highlight ----------
+function buildFlow(objs, inits, mets, targetW){
+  const bw=200, bh=58, gapInit=42, midW=228, midH=82, padSide=54, padTop=60, padBottom=44;
+  const iColTight = layoutCol(inits, midH, gapInit);
+  const oTight = layoutCol(objs, bh, 14), mTight = layoutCol(mets, bh, 14);
+  const contentH = Math.max(iColTight.total, oTight.total, mTight.total, 160);
+  const H = contentH + padTop + padBottom;
+  const minW = bw*2 + midW + padSide*2 + 320;
+  const W = Math.max(minW, targetW||0);
+  const xObj=padSide, xInit=(W-midW)/2, xMet=W-padSide-bw;
+  const iOff = padTop + (contentH-iColTight.total)/2;
+  const oSpread = spreadCol(objs, bh, contentH), mSpread = spreadCol(mets, bh, contentH);
+
+  const objRel={}, metRel={};
+  inits.forEach(it=>{
+    if(it._grey) return;
+    Object.keys(it.objCorr).forEach(k=>{ if(it.objCorr[k]>=1) (objRel[k]=objRel[k]||[]).push(it.id); });
+    Object.keys(it.metCorr).forEach(k=>{ if(it.metCorr[k]>=1) (metRel[k]=metRel[k]||[]).push(it.id); });
+  });
+
+  let lines='', blocks='';
+  const oY={}, mY={};
+  objs.forEach((o,i)=>{ const y=padTop+oSpread.pos[i]; oY[o.id]=y+bh/2; blocks+=blockRect(xObj,y,bw,bh,'blk-obj entitynode',o.title,null,o.color, `data-rel="${(objRel[o.id]||[]).join(',')}" data-kind="obj" data-id="${o.id}"`); });
+  mets.forEach((m,i)=>{ const y=padTop+mSpread.pos[i]; mY[m.id]=y+bh/2; blocks+=blockRect(xMet,y,bw,bh,'blk-met entitynode',m.title,null,m.color, `data-rel="${(metRel[m.id]||[]).join(',')}" data-kind="met" data-id="${m.id}"`); });
+  inits.forEach((it,i)=>{
+    const y=iOff+iColTight.pos[i], cy=y+midH/2, grey=it._grey;
+    blocks += blockRect(xInit,y,midW,midH,'blk-init initnode'+(grey?' grey':''), it.title, it.owner||'No owner set', null, `data-init="${it.id}"`);
+    if(!grey){
+      Object.keys(it.objCorr).forEach(k=>{ if(k in oY) lines += strokeLine(xObj+bw,oY[k],xInit,cy, (objs.find(o=>o.id===k)||{}).color||'#888',it.objCorr[k], `data-init="${it.id}" data-obj="${k}"`); });
+      Object.keys(it.metCorr).forEach(k=>{ if(k in mY) lines += strokeLine(xInit+midW,cy,xMet,mY[k], (mets.find(m=>m.id===k)||{}).color||'#888',it.metCorr[k], `data-init="${it.id}" data-met="${k}"`); });
+      const oc=connSummary(it.objCorr), mc=connSummary(it.metCorr);
+      blocks += `<text x="${xInit+10}" y="${y+midH+16}" font-size="9.5" fill="#7d7889">${oc.s}S-${oc.m}M</text>`;
+      blocks += `<text x="${xInit+midW-10}" y="${y+midH+16}" text-anchor="end" font-size="9.5" fill="#7d7889">${mc.s}S-${mc.m}M</text>`;
+    }
+  });
+  const heads = `<text x="${xObj+bw/2}" y="${padTop-16}" text-anchor="middle" font-size="14" font-weight="700" fill="#9b96ab">Objectives</text>
+    <text x="${xInit+midW/2}" y="${padTop-16}" text-anchor="middle" font-size="14" font-weight="700" fill="#9b96ab">Initiatives</text>
+    <text x="${xMet+bw/2}" y="${padTop-16}" text-anchor="middle" font-size="14" font-weight="700" fill="#9b96ab">Metrics</text>`;
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${heads}${lines}${blocks}</svg>`;
+}
+function attachOverviewInteractivity(container){
+  const svg = container.querySelector('svg'); if(!svg) return;
+  svg.addEventListener('click', e=>{
+    const initNode = e.target.closest('.initnode');
+    const entityNode = !initNode ? e.target.closest('.entitynode') : null;
+    const node = initNode || entityNode;
+    const allInit = svg.querySelectorAll('.initnode');
+    const allLinks = svg.querySelectorAll('.linkpath');
+    const allEntity = svg.querySelectorAll('.entitynode');
+    const resetAll = ()=>{
+      allInit.forEach(x=>{x.style.opacity=1;x.classList.remove('sel-active');});
+      allLinks.forEach(x=>x.style.opacity=1);
+      allEntity.forEach(x=>{x.style.opacity=1;x.classList.remove('sel-active');});
+    };
+    if(!node){ resetAll(); return; }
+    const wasActive = node.classList.contains('sel-active');
+    resetAll();
+    if(wasActive) return;
+    node.classList.add('sel-active');
+    if(initNode){
+      const n = initNode.getAttribute('data-init');
+      allInit.forEach(x=>{ if(x.getAttribute('data-init')!==n) x.style.opacity=0.15; });
+      allLinks.forEach(x=>{ if(x.getAttribute('data-init')!==n) x.style.opacity=0.06; });
+      allEntity.forEach(x=>{ const rel=(x.getAttribute('data-rel')||'').split(',').filter(Boolean); if(!rel.includes(n)) x.style.opacity=0.15; });
+    } else {
+      const kind = entityNode.getAttribute('data-kind'), id = entityNode.getAttribute('data-id');
+      const rel = (entityNode.getAttribute('data-rel')||'').split(',').filter(Boolean);
+      allInit.forEach(x=>{ if(!rel.includes(x.getAttribute('data-init'))) x.style.opacity=0.15; });
+      allLinks.forEach(x=>{
+        const matches = kind==='obj' ? x.getAttribute('data-obj')===id : x.getAttribute('data-met')===id;
+        if(!matches) x.style.opacity=0.06;
+      });
+      allEntity.forEach(x=>{ if(x!==entityNode) x.style.opacity=0.15; });
+    }
+  });
+}
+
+// ---------- Detail: reference-matched Sankey (bars + curved ribbons) ----------
+function buildInitiativeSankey(objs, it, mets, shape){
+  const barW=16, labelGap=180, midGap=120, initW=240, padSide=20, padTop=56, padBottom=40;
+  const barGap=16, segGap=6, overlap=6;
+  function ih(w){ return w>=5?72:24; }
+  function stack(list, corrMap, gap){
+    let y=0; const segs=[];
+    list.forEach(x=>{ const hh=ih(corrMap[x.id]); segs.push({item:x, y0:y, y1:y+hh, w:corrMap[x.id]}); y+=hh+gap; });
+    return {segs, total: Math.max(0,y-gap)};
+  }
+  const oBar=stack(objs,it.objCorr,barGap), mBar=stack(mets,it.metCorr,barGap);
+  const oSeg=stack(objs,it.objCorr,segGap), mSeg=stack(mets,it.metCorr,segGap);
+  const blockH = Math.max(oBar.total, mBar.total, oSeg.total, mSeg.total, 110);
+  const H = blockH + padTop + padBottom;
+  const W = padSide + labelGap + barW + midGap + initW + midGap + barW + labelGap + padSide;
+  const xObjBar = padSide+labelGap, xInit = xObjBar+barW+midGap, xMetBar = xInit+initW+midGap;
+  const oBarOff = padTop+(blockH-oBar.total)/2, mBarOff = padTop+(blockH-mBar.total)/2;
+  const oSegOff = padTop+(blockH-oSeg.total)/2, mSegOff = padTop+(blockH-mSeg.total)/2;
+  let bands='', bars='', labels='';
+  oBar.segs.forEach((s,i)=>{
+    const y0=oBarOff+s.y0, y1=oBarOff+s.y1, seg=oSeg.segs[i], Y0=oSegOff+seg.y0, Y1=oSegOff+seg.y1;
+    const strong = s.w>=5, col=s.item.color;
+    bands += ribbon(xObjBar+barW,y0,y1, xInit+overlap,Y0,Y1, col, strong?0.5:0.32);
+    bars += `<rect x="${xObjBar}" y="${y0}" width="${barW}" height="${y1-y0}" rx="6" fill="${col}"/>`;
+    labels += `<text x="${xObjBar-10}" y="${(y0+y1)/2+4}" text-anchor="end" font-size="12" font-weight="600" fill="#eee8f0">${esc(wrapPlain(s.item.title,28))}</text>`;
+  });
+  mBar.segs.forEach((s,i)=>{
+    const y0=mBarOff+s.y0, y1=mBarOff+s.y1, seg=mSeg.segs[i], Y0=mSegOff+seg.y0, Y1=mSegOff+seg.y1;
+    const strong = s.w>=5, col=s.item.color;
+    bands += ribbon(xInit+initW-overlap,Y0,Y1, xMetBar,y0,y1, col, strong?0.5:0.32);
+    bars += `<rect x="${xMetBar}" y="${y0}" width="${barW}" height="${y1-y0}" rx="6" fill="${col}"/>`;
+    labels += `<text x="${xMetBar+barW+10}" y="${(y0+y1)/2+4}" text-anchor="start" font-size="12" font-weight="600" fill="#eee8f0">${esc(wrapPlain(s.item.title,28))}</text>`;
+  });
+  let initShapeSvg, labelCY;
+  if(shape==='trapezoid' && oSeg.total>0 && mSeg.total>0){
+    const lTop=oSegOff, lBot=oSegOff+oSeg.total, rTop=mSegOff, rBot=mSegOff+mSeg.total;
+    initShapeSvg = `<polygon points="${xInit},${lTop} ${xInit+initW},${rTop} ${xInit+initW},${rBot} ${xInit},${lBot}"/>`;
+    labelCY = ((lTop+lBot)/2 + (rTop+rBot)/2)/2;
+  } else {
+    initShapeSvg = `<rect x="${xInit}" y="${padTop}" width="${initW}" height="${blockH}" rx="14"/>`;
+    labelCY = padTop+blockH/2;
+  }
+  const initBlock = `<g class="blk blk-init">${initShapeSvg}
+    <text text-anchor="middle" font-weight="700">${svgText(xInit+initW/2, labelCY-8, it.title, {maxChars:22,maxLines:2,lineHeight:16})}</text>
+    <text class="sub" text-anchor="middle">${svgText(xInit+initW/2, labelCY+26, it.owner||'No owner set', {maxChars:24,maxLines:1,lineHeight:13})}</text></g>`;
+  const heads = `<text x="${xObjBar+barW/2}" y="${padTop-18}" text-anchor="middle" font-size="13" font-weight="700" fill="#9b96ab">Objectives</text>
+    <text x="${xInit+initW/2}" y="${padTop-18}" text-anchor="middle" font-size="13" font-weight="700" fill="#9b96ab">Initiative</text>
+    <text x="${xMetBar+barW/2}" y="${padTop-18}" text-anchor="middle" font-size="13" font-weight="700" fill="#9b96ab">Metrics</text>`;
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${heads}${bands}${bars}${initBlock}${labels}</svg>`;
+}
+
+// ---------- Detail: bow-tie, solid/dashed, headings + counts, strong-on-top ----------
+function buildBowtie(objs, mets, it){
+  const bw=200, bh=54, gap=20, padSide=50, padTop=68, padBottom=44, cw=224, ch=78;
+  const oCol=layoutCol(objs,bh,gap), mCol=layoutCol(mets,bh,gap);
+  const contentH = Math.max(oCol.total,mCol.total,140);
+  const H = contentH + padTop + padBottom;
+  const W = bw*2 + cw + 320;
+  const xObj=padSide, xMet=W-padSide-bw, cx=W/2, cy=padTop+contentH/2;
+  const oOff=padTop+(contentH-oCol.total)/2, mOff=padTop+(contentH-mCol.total)/2;
+  let lines='', blocks='';
+  objs.forEach((o,i)=>{
+    const y=oOff+oCol.pos[i], ycen=y+bh/2;
+    blocks += blockRect(xObj,y,bw,bh,'blk-obj',o.title,null,o.color);
+    lines += strokeLine(xObj+bw,ycen,cx-cw/2,cy,o.color,it.objCorr[o.id]);
+  });
+  mets.forEach((m,i)=>{
+    const y=mOff+mCol.pos[i], ycen=y+bh/2;
+    blocks += blockRect(xMet,y,bw,bh,'blk-met',m.title,null,m.color);
+    lines += strokeLine(cx+cw/2,cy,xMet,ycen,m.color,it.metCorr[m.id]);
+  });
+  blocks += blockRect(cx-cw/2,cy-ch/2,cw,ch,'blk-init',it.title,it.owner||'No owner set');
+  const oc=connSummary(it.objCorr), mc=connSummary(it.metCorr);
+  const heads = `<text x="${xObj+bw/2}" y="${padTop-30}" text-anchor="middle" font-size="14" font-weight="700" fill="#9b96ab">Objectives</text>
+    <text x="${xObj+bw/2}" y="${padTop-12}" text-anchor="middle" font-size="10.5" fill="#7d7889">${oc.s} Strong, ${oc.m} Medium</text>
+    <text x="${cx}" y="${padTop-30}" text-anchor="middle" font-size="14" font-weight="700" fill="#9b96ab">Initiative</text>
+    <text x="${xMet+bw/2}" y="${padTop-30}" text-anchor="middle" font-size="14" font-weight="700" fill="#9b96ab">Metrics</text>
+    <text x="${xMet+bw/2}" y="${padTop-12}" text-anchor="middle" font-size="10.5" fill="#7d7889">${mc.s} Strong, ${mc.m} Medium</text>`;
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${heads}${lines}${blocks}</svg>`;
+}
+
+// ---------- Matrix: colored + dotted table builder (read-only summaries) ----------
+function buildMatrixTable(objCols, metCols, rows, rowHeaderLabel, rowHeaderClass){
+  if(!rows.length) return `<div class="center">Nothing here yet.</div>`;
+  const rhClass = rowHeaderClass || 'hdr-init';
+  let h = `<div class="scrollx"><table><thead><tr>`;
+  if(objCols.length) h += `<th class="hdr-obj" colspan="${objCols.length}">Objectives</th>`;
+  h += `<th class="hdr-init rowlabel">&nbsp;</th>`;
+  if(metCols.length) h += `<th class="hdr-met" colspan="${metCols.length}">Metrics</th>`;
+  h += `</tr><tr>`;
+  objCols.forEach(o=> h += `<th class="hdr-obj">${esc(o.title)}</th>`);
+  h += `<th class="${rhClass} rowlabel">${rowHeaderLabel?esc(rowHeaderLabel):'&nbsp;'}</th>`;
+  metCols.forEach(m=> h += `<th class="hdr-met">${esc(m.title)}</th>`);
+  h += `</tr></thead><tbody>`;
+  rows.forEach(row=>{
+    h += `<tr>`;
+    objCols.forEach(o=>{
+      const w = row.obj ? (row.obj[o.id]||0) : 0;
+      h += `<td style="background:${bgFor('obj',w)}">${dotIcon(w)}</td>`;
+    });
+    h += `<td class="rowlabel">${esc(row.label)}</td>`;
+    metCols.forEach(m=>{
+      const w = row.met ? (row.met[m.id]||0) : 0;
+      h += `<td style="background:${row.met?bgFor('met',w):'transparent'}">${row.met?dotIcon(w):''}</td>`;
+    });
+    h += `</tr>`;
+  });
+  return h + `</tbody></table></div>`;
+}
+function tableOim(){
+  const objs = DATA.objectives, mets = DATA.metrics, inits = DATA.initiatives;
+  if(!inits.length) return `<div class="center">No initiatives yet — add one from the Full Matrix view.</div>`;
+  const rows = inits.map(it=>({label: it.title+(it.owner?' ('+it.owner+')':''), obj: it.objCorr, met: it.metCorr}));
+  return buildMatrixTable(objs, mets, rows, 'Initiatives', 'hdr-blue');
+}
+function tableGoalsObj(){
+  const objs = DATA.objectives, goals = DATA.goals;
+  if(!goals.length) return `<div class="center">No CEO goals yet — add one from the Full Matrix view.</div>`;
+  const rows = goals.map(g=>({label:g.title, obj:g.objCorr, met:null}));
+  return buildMatrixTable(objs, [], rows, 'Goals', 'hdr-purple');
+}
+
+// ---------- Matrix: the editable Full Matrix (the only place data is entered) ----------
+function crossSvg(){
+  const S=150, cx=S/2, cy=S/2;
+  return `<svg width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="0,0 ${S},0 ${cx},${cy}" fill="hsl(305 40% 20%)"/>
+    <polygon points="0,0 0,${S} ${cx},${cy}" fill="hsl(152 40% 18%)"/>
+    <polygon points="${S},0 ${S},${S} ${cx},${cy}" fill="hsl(38 55% 22%)"/>
+    <polygon points="0,${S} ${S},${S} ${cx},${cy}" fill="hsl(210 45% 20%)"/>
+    <line x1="0" y1="0" x2="${S}" y2="${S}" stroke="#0e0d12" stroke-width="1.5"/>
+    <line x1="${S}" y1="0" x2="0" y2="${S}" stroke="#0e0d12" stroke-width="1.5"/>
+    <text x="${cx}" y="${S*0.24}" text-anchor="middle" font-size="11" font-weight="800" fill="#f0d9f5">Goals</text>
+    <text x="${S*0.25}" y="${cy+4}" text-anchor="middle" font-size="10" font-weight="800" fill="#bdeed4">Objectives</text>
+    <text x="${S*0.75}" y="${cy+4}" text-anchor="middle" font-size="10" font-weight="800" fill="#ffe4ac">Metrics</text>
+    <text x="${cx}" y="${S*0.82}" text-anchor="middle" font-size="11" font-weight="800" fill="#bfe0ff">Initiatives</text>
+  </svg>`;
+}
+function buildFullMatrixTable(){
+  const objCols = DATA.objectives, metCols = DATA.metrics, goalRows = DATA.goals, initRows = DATA.initiatives;
+  const maxCols = Math.max(objCols.length, metCols.length);
+  const objPad = maxCols-objCols.length, metPad = maxCols-metCols.length;
+  const maxRows = Math.max(goalRows.length, initRows.length);
+  const goalPad = maxRows-goalRows.length, initPad = maxRows-initRows.length;
+  const blankTh = `<th class="xm-blank"></th>`, blankTd = `<td class="xm-blank"></td>`;
+  const blankRow = ()=> `<tr>${blankTd.repeat(objPad)}${blankTd.repeat(objCols.length)}${blankTd}${blankTd.repeat(metCols.length)}${blankTd.repeat(metPad)}</tr>`;
+
+  let h = `<table class="xmatrix">`;
+  for(let i=0;i<goalPad;i++) h += blankRow();
+  goalRows.forEach(g=>{
+    h += `<tr>${blankTd.repeat(objPad)}`;
+    objCols.forEach(o=>{ const w=g.objCorr[o.id]||0; h += `<td class="xm-cell" data-type="og" data-row="${g.id}" data-col="${o.id}" style="background:${bgFor('goal',w)}">${xIcon(w)}</td>`; });
+    h += `<td class="xm-goal-label" data-kind="goal" data-id="${g.id}">${esc(g.title)}</td>`;
+    metCols.forEach(()=> h += `<td class="xm-dash">–</td>`);
+    h += `${blankTd.repeat(metPad)}</tr>`;
+  });
+  h += `<tr>`;
+  h += blankTh.repeat(objPad);
+  objCols.forEach(o=> h += `<th class="xm-obj-head"><div class="xm-rot" data-kind="obj" data-id="${o.id}">${esc(o.title)}</div></th>`);
+  h += `<th class="xm-cross">${crossSvg()}</th>`;
+  metCols.forEach(m=> h += `<th class="xm-met-head"><div class="xm-rot" data-kind="met" data-id="${m.id}">${esc(m.title)}</div></th>`);
+  h += blankTh.repeat(metPad);
+  h += `</tr>`;
+  initRows.forEach(it=>{
+    h += `<tr>${blankTd.repeat(objPad)}`;
+    objCols.forEach(o=>{ const w=it.objCorr[o.id]||0; h += `<td class="xm-cell" data-type="oi" data-row="${it.id}" data-col="${o.id}" style="background:${bgFor('obj',w)}">${xIcon(w)}</td>`; });
+    h += `<td class="xm-init-label" data-kind="init" data-id="${it.id}">${esc(it.title)}${it.owner?' ('+esc(it.owner)+')':''}</td>`;
+    metCols.forEach(m=>{ const w=it.metCorr[m.id]||0; h += `<td class="xm-cell" data-type="mi" data-row="${it.id}" data-col="${m.id}" style="background:${bgFor('met',w)}">${xIcon(w)}</td>`; });
+    h += `${blankTd.repeat(metPad)}</tr>`;
+  });
+  for(let i=0;i<initPad;i++) h += blankRow();
+  h += `</table>`;
+  return h;
+}
+function buildFullMatrixEditor(){
+  const h = buildFullMatrixTable();
+  return `<div class="xm-editor">
+    <div class="xm-edge-top"><button class="xm-add" data-add="goal" title="Add a goal">+</button></div>
+    <div class="xm-middlerow">
+      <button class="xm-add" data-add="objective" title="Add an objective">+</button>
+      <div class="scrollx xm-center">${h}</div>
+      <button class="xm-add" data-add="metric" title="Add a metric">+</button>
+    </div>
+    <div class="xm-edge-bottom"><button class="xm-add" data-add="initiative" title="Add an initiative">+</button></div>
+  </div>`;
+}
+function deleteObjective(id){
+  DATA.objectives = DATA.objectives.filter(o=>o.id!==id);
+  DATA.goals.forEach(g=> delete g.objCorr[id]);
+  DATA.initiatives.forEach(it=> delete it.objCorr[id]);
+}
+function deleteMetric(id){
+  DATA.metrics = DATA.metrics.filter(m=>m.id!==id);
+  DATA.initiatives.forEach(it=> delete it.metCorr[id]);
+}
+function renameEntity(kind, id){
+  let entity;
+  if(kind==='obj') entity = DATA.objectives.find(o=>o.id===id);
+  else if(kind==='met') entity = DATA.metrics.find(m=>m.id===id);
+  else if(kind==='goal') entity = DATA.goals.find(g=>g.id===id);
+  else if(kind==='init') entity = DATA.initiatives.find(i=>i.id===id);
+  if(!entity) return;
+  const val = prompt('Rename (leave blank to delete):', entity.title);
+  if(val===null) return;
+  const trimmed = val.trim();
+  pushUndo();
+  if(!trimmed){
+    if(kind==='obj') deleteObjective(id);
+    else if(kind==='met') deleteMetric(id);
+    else if(kind==='goal') DATA.goals = DATA.goals.filter(g=>g.id!==id);
+    else if(kind==='init') DATA.initiatives = DATA.initiatives.filter(i=>i.id!==id);
+    if(detailInit===id) detailInit = null;
+  } else {
+    entity.title = trimmed;
+  }
+  renderAll();
+}
+function cycleCorr(type, rowId, colId){
+  let map;
+  if(type==='og'){ const g=DATA.goals.find(x=>x.id===rowId); if(!g) return; map=g.objCorr; }
+  else if(type==='oi'){ const it=DATA.initiatives.find(x=>x.id===rowId); if(!it) return; map=it.objCorr; }
+  else if(type==='mi'){ const it=DATA.initiatives.find(x=>x.id===rowId); if(!it) return; map=it.metCorr; }
+  else return;
+  pushUndo();
+  const cur = map[colId]||0;
+  const next = cur===0?2:cur===2?5:0;
+  if(next===0) delete map[colId]; else map[colId]=next;
+  renderAll();
+}
+function addEntity(kind){
+  pushUndo();
+  if(kind==='objective') DATA.objectives.unshift({id:newId(), title:'New Objective', color:nextObjColor()});
+  else if(kind==='metric') DATA.metrics.push({id:newId(), title:'New Metric', color:nextMetColor()});
+  else if(kind==='goal') DATA.goals.unshift({id:newId(), title:'New Goal', objCorr:{}});
+  else if(kind==='initiative') DATA.initiatives.push({id:newId(), title:'New Initiative', owner:'', objCorr:{}, metCorr:{}, notes:''});
+  renderAll();
+}
+
+// ---------- Render: Goals ----------
+function renderGoals(){
+  const el = document.getElementById('view-goals');
+  if(!DATA.goals.length){ el.innerHTML = `<div class="center">No CEO goals yet. Add one from the Matrix tab's Full Matrix view (the "+" above the goal rows).</div>`; return; }
+  el.innerHTML = `<div class="exportrow"><button data-export="png">Export .png</button></div><p class="hint">CEO goals with the objectives that ladder up to each one.</p><div id="goalsVisual">${goalsVisualInner()}</div>`;
+}
+function goalsVisualInner(){
+  const goals = DATA.goals, objs = DATA.objectives;
+  if(!goals.length) return null;
+  const cardHtml = (g)=>{
+    const linked = sortByStrength(objs.filter(o=>g.objCorr[o.id]>=1), g.objCorr);
+    let c = `<div class="goalcard"><div class="ghead">${esc(g.title)}</div><div class="gbody"><h4>Objectives</h4>`;
+    c += linked.length ? linked.map(o=> corrItemHtml(o.title, o.color, g.objCorr[o.id]>=5)).join('') : `<div class="empty">No objectives linked yet</div>`;
+    return c + `</div></div>`;
+  };
+  const fullCount = Math.floor(goals.length/3)*3;
+  const mainGoals = goals.slice(0, fullCount), leftover = goals.slice(fullCount);
+  let html = '';
+  if(mainGoals.length) html += `<div class="goalgrid">${mainGoals.map(cardHtml).join('')}</div>`;
+  if(leftover.length) html += `<div class="goalrow-leftover" style="${mainGoals.length?'margin-top:18px':''}">${leftover.map(cardHtml).join('')}</div>`;
+  return html;
+}
+
+// ---------- Render: Overview ----------
+function renderOverview(){
+  const el = document.getElementById('view-overview');
+  const objs = DATA.objectives, mets = DATA.metrics;
+  const inits = DATA.initiatives.map(i=>({...i, _grey: Object.values(i.objCorr).every(v=>v===0) && Object.values(i.metCorr).every(v=>v===0)}));
+  if(!inits.length){ el.innerHTML = `<div class="center">No initiatives yet. Add one from the Matrix tab's Full Matrix view.</div>`; return; }
+  const targetW = Math.max(1100, el.clientWidth - 44);
+  el.innerHTML = `<div class="exportrow"><button data-export="png">Export .png</button></div><p class="hint">Objectives → Initiatives → Metrics. Solid line = strong correlation, dashed = medium. Click any block to highlight its connections. "S-M" counts below each initiative show its strong/medium links.</p>
+  <div class="legend">
+    <span><span class="ln"></span>Strong</span>
+    <span><span class="ln dash"></span>Medium</span>
+  </div>
+  <div class="scrollx">${buildFlow(objs, inits, mets, targetW)}</div>`;
+  attachOverviewInteractivity(el);
+}
+
+// ---------- Render: Matrix ----------
+function renderMatrix(){
+  const el = document.getElementById('view-matrix');
+  el.innerHTML = `<div class="toggle2">
+    <button id="mtFull" class="${matrixMode==='full'?'on':''}">Full Matrix</button>
+    <button id="mtOim" class="${matrixMode==='oim'?'on':''}">Objectives, Initiatives, Metrics</button>
+    <button id="mtGoalObj" class="${matrixMode==='goalobj'?'on':''}">Goals, Objectives</button>
+    <div class="exportbtns"><button data-export="xlsx">Export .xlsx</button><button data-export="png">Export .png</button></div>
+  </div><div id="matrixTable"></div>`;
+  document.getElementById('mtFull').onclick = ()=>{ matrixMode='full'; renderMatrix(); };
+  document.getElementById('mtOim').onclick = ()=>{ matrixMode='oim'; renderMatrix(); };
+  document.getElementById('mtGoalObj').onclick = ()=>{ matrixMode='goalobj'; renderMatrix(); };
+  const box = document.getElementById('matrixTable');
+  if(matrixMode==='full'){
+    box.innerHTML = `<p class="hint">This is the one place you edit data. Double-click any title to rename it (clear the text to delete that row or column). Click a correlation cell to cycle None → Medium → Strong → None. Use the white "+" buttons to add a goal, objective, initiative or metric. The center cell is fixed.</p>
+    <div class="xm-toolbar">
+      <button id="xmUndo" ${undoStack.length?'':'disabled'}>↶ Undo</button>
+      <button id="xmRedo" ${redoStack.length?'':'disabled'}>↷ Redo</button>
+    </div>
+    ${buildFullMatrixEditor()}`;
+    document.getElementById('xmUndo').onclick = doUndo;
+    document.getElementById('xmRedo').onclick = doRedo;
+    const table = box.querySelector('table.xmatrix');
+    if(table){
+      table.addEventListener('click', e=>{
+        const cell = e.target.closest('.xm-cell'); if(!cell) return;
+        cycleCorr(cell.dataset.type, cell.dataset.row, cell.dataset.col);
+      });
+      table.addEventListener('dblclick', e=>{
+        const lbl = e.target.closest('[data-kind]'); if(!lbl) return;
+        renameEntity(lbl.dataset.kind, lbl.dataset.id);
+      });
+    }
+    box.querySelectorAll('.xm-add').forEach(b=> b.onclick = ()=> addEntity(b.dataset.add));
+  } else if(matrixMode==='oim'){
+    box.innerHTML = tableOim();
+  } else {
+    box.innerHTML = tableGoalsObj();
+  }
+}
+
+// ---------- Render: Detail ----------
+function renderDetail(){
+  const el = document.getElementById('view-detail');
+  const inits = DATA.initiatives;
+  if(!inits.length){ el.innerHTML = `<div class="center">No initiatives yet. Add one from the Matrix tab's Full Matrix view.</div>`; return; }
+  if(!detailInit || !inits.find(i=>i.id===detailInit)) detailInit = inits[0].id;
+  const it = inits.find(i=>i.id===detailInit);
+  el.innerHTML = `<div class="detailwrap">
+    <div class="initpills">${inits.map(i=>`<div class="initpill ${i.id===detailInit?'active':''}" data-init="${i.id}">
+      <div class="ipname">${esc(i.title)}</div><div class="ipowner">${esc(i.owner||'No owner set')}</div></div>`).join('')}</div>
+    <div class="detailmain">
+      <div class="detailtop">
+        <div class="viewpick">
+          <button data-m="sankey" class="${detailMode==='sankey'?'primary':''}">Sankey</button>
+          <button data-m="bowtie" class="${detailMode==='bowtie'?'primary':''}">Bow-tie</button>
+          <button data-m="text" class="${detailMode==='text'?'primary':''}">Tabulated</button>
+        </div>
+        <button class="exportbtn" data-export="png">Export .png</button>
+      </div>
+      <div id="detailBody"></div>
+      <div class="notesbox">
+        <h4>Notes for this initiative</h4>
+        <textarea id="initNotes" placeholder="Add notes about this initiative…">${esc(it.notes||'')}</textarea>
+      </div>
+    </div>
+  </div>`;
+  el.querySelectorAll('.initpill').forEach(p=> p.onclick = ()=>{ detailInit = p.dataset.init; renderDetail(); });
+  el.querySelectorAll('.viewpick button').forEach(b=> b.onclick = ()=>{ detailMode = b.dataset.m; renderDetail(); });
+  const notesEl = document.getElementById('initNotes');
+  let notesUndoArmed = false;
+  notesEl.addEventListener('focus', ()=>{ if(!notesUndoArmed){ pushUndo(); notesUndoArmed = true; } });
+  notesEl.addEventListener('input', e=>{ it.notes = e.target.value; });
+  notesEl.addEventListener('blur', ()=>{ notesUndoArmed = false; });
+
+  // In this tab every objective is one green and every metric one yellow (no per-item color coding).
+  const objs = DATA.objectives.filter(o=> it.objCorr[o.id]>=1).map(o=>({...o, color:'#2f9e73'}));
+  const mets = DATA.metrics.filter(m=> it.metCorr[m.id]>=1).map(m=>({...m, color:'#e0a634'}));
+  const body = document.getElementById('detailBody');
+  if(!objs.length && !mets.length){ body.innerHTML = `<div class="center">"${esc(it.title)}" has no objective or metric links yet.</div>`; return; }
+  if(detailMode==='sankey'){
+    body.innerHTML = `<div class="legend"><span><span class="ln"></span>Strong (thicker band)</span><span><span class="ln dash"></span>Medium (thinner band)</span>
+      <label class="shapepick"><input type="checkbox" id="shapeToggle" ${sankeyShape==='rect'?'':'checked'}> Trapezoidal initiative block</label></div>
+    <div class="scrollx">${detailVisual(it,'sankey')}</div>`;
+    document.getElementById('shapeToggle').onchange = e=>{ sankeyShape = e.target.checked ? 'trapezoid' : 'rect'; renderDetail(); };
+  } else if(detailMode==='bowtie'){
+    body.innerHTML = `<div class="legend"><span><span class="ln"></span>Strong</span><span><span class="ln dash"></span>Medium</span></div>
+    <div class="scrollx">${detailVisual(it,'bowtie')}</div>`;
+  } else {
+    body.innerHTML = detailVisual(it,'text');
+  }
+}
+// The visual for one initiative in one view (used on-screen). Returns null if it has no links.
+function detailVisual(it, mode){
+  const objs = DATA.objectives.filter(o=> it.objCorr[o.id]>=1).map(o=>({...o, color:'#2f9e73'}));
+  const mets = DATA.metrics.filter(m=> it.metCorr[m.id]>=1).map(m=>({...m, color:'#e0a634'}));
+  if(!objs.length && !mets.length) return null;
+  if(mode==='sankey') return buildInitiativeSankey(objs, it, mets, sankeyShape);
+  const sObjs = sortByStrength(objs, it.objCorr), sMets = sortByStrength(mets, it.metCorr);
+  if(mode==='bowtie') return buildBowtie(sObjs, sMets, it);
+  let h = `<div class="textcard"><div class="head"><h3>${esc(it.title)}</h3><div class="own">${esc(it.owner||'No owner set')}</div></div>`;
+  h += `<div class="sect"><h4>Objectives</h4>`;
+  h += sObjs.length ? sObjs.map(o=> corrItemHtml(o.title, o.color, it.objCorr[o.id]>=5)).join('') : `<div class="empty">None linked</div>`;
+  h += `</div><div class="sect"><h4>Metrics</h4>`;
+  h += sMets.length ? sMets.map(m=> corrItemHtml(m.title, m.color, it.metCorr[m.id]>=5)).join('') : `<div class="empty">None linked</div>`;
+  return h + `</div></div>`;
+}
+// ---------- Export (PNG + XLSX) ----------
+function loadScript(url){
+  return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=url; s.onload=res; s.onerror=()=>rej(new Error('Could not load '+url+' (needs an internet connection)')); document.head.appendChild(s); });
+}
+// Uses the hosted-page download capability when present, otherwise a normal browser download.
+async function saveFile(blob, filename){
+  try{
+    if(window.claude && window.claude.use){
+      const d = await window.claude.use('downloads');
+      if(d){ await d.save({filename, data: blob}); return; }
+    }
+  }catch(e){ if(e && e.code==='declined') return; }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ a.remove(); URL.revokeObjectURL(url); }, 1500);
+}
+function safeScale(w,h,desired){ return Math.max(0.5, Math.min(desired, Math.sqrt(48e6/(w*h)), 16000/Math.max(w,h))); }
+
+// --- PNG: SVG visuals (Overview, Sankey, Bow-tie) ---
+const SVG_PROPS = ['fill','fill-opacity','stroke','stroke-width','stroke-dasharray','stroke-linecap','opacity','font-size','font-weight','font-style','font-family','text-anchor'];
+function inlineSvgStyles(src, dst){
+  const cs = getComputedStyle(src);
+  SVG_PROPS.forEach(p=> dst.style.setProperty(p, cs.getPropertyValue(p)));
+  for(let i=0;i<src.children.length;i++) inlineSvgStyles(src.children[i], dst.children[i]);
+}
+async function svgToCanvas(svgEl, scale){
+  const clone = svgEl.cloneNode(true);
+  for(let i=0;i<svgEl.children.length;i++) inlineSvgStyles(svgEl.children[i], clone.children[i]);
+  const w = parseFloat(svgEl.getAttribute('width')), h = parseFloat(svgEl.getAttribute('height'));
+  clone.setAttribute('width', w); clone.setAttribute('height', h);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  const xml = new XMLSerializer().serializeToString(clone);
+  const url = URL.createObjectURL(new Blob([xml], {type:'image/svg+xml;charset=utf-8'}));
+  const img = new Image();
+  await new Promise((res,rej)=>{ img.onload = res; img.onerror = ()=>rej(new Error('Could not render the diagram')); img.src = url; });
+  const pad = 32, s = safeScale(w+2*pad, h+2*pad, scale);
+  const c = document.createElement('canvas');
+  c.width = Math.round((w+2*pad)*s); c.height = Math.round((h+2*pad)*s);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,c.width,c.height);
+  ctx.drawImage(img, pad*s, pad*s, w*s, h*s);
+  URL.revokeObjectURL(url);
+  return c;
+}
+
+// --- PNG: HTML visuals (Goals cards, tables, Tabulated card) ---
+function fixRotatedHeaders(root){
+  const ctx = document.createElement('canvas').getContext('2d');
+  ctx.font = '600 11px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif';
+  root.querySelectorAll('.xm-rot').forEach(el=>{
+    const t = el.textContent, W = 20, H = Math.ceil(ctx.measureText(t).width) + 16, ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns,'svg');
+    svg.setAttribute('width',W); svg.setAttribute('height',H); svg.setAttribute('viewBox','0 0 '+W+' '+H);
+    const tx = document.createElementNS(ns,'text');
+    tx.setAttribute('transform','translate(6,8) rotate(90)'); tx.setAttribute('fill','#eee8f0');
+    tx.setAttribute('font-size','11'); tx.setAttribute('font-weight','600');
+    tx.setAttribute('font-family','-apple-system, Segoe UI, Helvetica, Arial, sans-serif');
+    tx.textContent = t; svg.appendChild(tx);
+    svg.style.margin = '0'; svg.style.maxWidth = 'none';
+    el.replaceWith(svg);
+  });
+  // The centre X cell is redrawn on a canvas: html2canvas mis-positions auto-centred inline SVGs and clipped it.
+  root.querySelectorAll('.xm-cross svg').forEach(s=>{
+    const box = document.createElement('div');
+    box.style.cssText = 'display:flex;justify-content:center;line-height:0';
+    box.appendChild(crossCanvas());
+    s.replaceWith(box);
+  });
+}
+function crossCanvas(){
+  const S = 150, k = 4, c = document.createElement('canvas');
+  c.width = c.height = S*k; c.style.cssText = 'display:block;width:150px;height:150px';
+  const x = c.getContext('2d'); x.scale(k,k);
+  const m = S/2, poly = (pts,col)=>{ x.fillStyle = col; x.beginPath(); pts.forEach((p,i)=> i ? x.lineTo(p[0],p[1]) : x.moveTo(p[0],p[1])); x.closePath(); x.fill(); };
+  poly([[0,0],[S,0],[m,m]],'hsl(305,40%,20%)'); poly([[0,0],[0,S],[m,m]],'hsl(152,40%,18%)');
+  poly([[S,0],[S,S],[m,m]],'hsl(38,55%,22%)'); poly([[0,S],[S,S],[m,m]],'hsl(210,45%,20%)');
+  x.strokeStyle = '#0e0d12'; x.lineWidth = 1.5; x.beginPath(); x.moveTo(0,0); x.lineTo(S,S); x.moveTo(S,0); x.lineTo(0,S); x.stroke();
+  x.textAlign = 'center';
+  const t = (s,px,py,fs,col)=>{ x.font = '800 '+fs+'px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif'; x.fillStyle = col; x.fillText(s,px,py); };
+  t('Goals',m,S*0.24,11,'#f0d9f5'); t('Objectives',S*0.25,m+4,10,'#bdeed4'); t('Metrics',S*0.75,m+4,10,'#ffe4ac'); t('Initiatives',m,S*0.82,11,'#bfe0ff');
+  return c;
+}
+// One shared "working…" overlay (also used by Export all so it doesn't flicker per image)
+let overlayEl = null;
+function setOverlay(text){
+  if(!overlayEl){
+    overlayEl = document.createElement('div');
+    overlayEl.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#121116;color:#9b96ab;display:flex;align-items:center;justify-content:center;font-size:15px';
+    document.body.appendChild(overlayEl);
+  }
+  overlayEl.textContent = text;
+}
+function clearOverlay(){ if(overlayEl){ overlayEl.remove(); overlayEl = null; } }
+async function htmlToCanvas(node, scale){
+  if(!window.html2canvas) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  const rect = node.getBoundingClientRect();
+  const ownOverlay = !overlayEl;
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;left:0;top:0;z-index:99999;background:#000;padding:32px;width:max-content;box-sizing:content-box';
+  const clone = node.cloneNode(true);
+  clone.style.width = Math.ceil(rect.width) + 'px'; clone.style.maxWidth = 'none'; clone.style.margin = '0';
+  wrap.appendChild(clone);
+  fixRotatedHeaders(clone);
+  const sy = window.scrollY, sx = window.scrollX;
+  document.body.appendChild(wrap); if(ownOverlay) setOverlay('Rendering image…');
+  window.scrollTo(0,0);
+  try{
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const w = wrap.offsetWidth, h = wrap.offsetHeight, s = safeScale(w,h,scale);
+    return await html2canvas(wrap, {backgroundColor:'#000000', scale:s, useCORS:true, logging:false, width:w, height:h, windowWidth:w+40, windowHeight:h+40, scrollX:0, scrollY:0});
+  } finally { wrap.remove(); if(ownOverlay) clearOverlay(); window.scrollTo(sx,sy); }
+}
+
+function getExportTarget(tab){
+  if(tab==='goals'){ const n = document.getElementById('goalsVisual'); return n && {node:n, kind:'html', name:'hoshin-goals'}; }
+  if(tab==='overview'){ const n = document.querySelector('#view-overview .scrollx svg'); return n && {node:n, kind:'svg', name:'hoshin-overview'}; }
+  if(tab==='matrix'){
+    const n = document.querySelector('#matrixTable table');
+    const nm = {full:'full-matrix', oim:'objectives-initiatives-metrics', goalobj:'goals-objectives'}[matrixMode];
+    return n && {node:n, kind:'html', name:'hoshin-matrix-'+nm};
+  }
+  return null;
+}
+// Renders a detached HTML string off-screen, then captures it via html2canvas — fine for plain
+// HTML/CSS content (cards, tables), but html2canvas can't reliably rasterize our CSS-styled SVGs
+// (it was producing solid-black output for Sankey/Bow-tie), so those never go through this path.
+async function htmlStringToCanvas(htmlStr, scale){
+  const host = document.createElement('div');
+  host.style.cssText = 'position:absolute;left:-99999px;top:0;width:max-content';
+  host.innerHTML = htmlStr;
+  document.body.appendChild(host);
+  try{ return await htmlToCanvas(host.firstElementChild, scale); }
+  finally{ host.remove(); }
+}
+// Renders a detached SVG *string* the same reliable way svgToCanvas renders a live SVG element:
+// attach it to the real DOM first (so getComputedStyle resolves), then hand off to svgToCanvas.
+async function svgStringToCanvas(svgStr, scale){
+  const host = document.createElement('div');
+  host.style.cssText = 'position:absolute;left:-99999px;top:0';
+  host.innerHTML = svgStr;
+  document.body.appendChild(host);
+  try{ return await svgToCanvas(host.querySelector('svg'), scale); }
+  finally{ host.remove(); }
+}
+function roundRectPath(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function wrapCanvasText(ctx, text, maxWidth){
+  const lines = [];
+  text.split('\n').forEach(p=>{
+    if(!p){ lines.push(''); return; }
+    let cur = '';
+    p.split(' ').forEach(w=>{
+      const test = cur ? cur+' '+w : w;
+      if(ctx.measureText(test).width > maxWidth && cur){ lines.push(cur); cur = w; } else cur = test;
+    });
+    lines.push(cur);
+  });
+  return lines;
+}
+// Draws the notes text directly on a canvas (no html2canvas involved) and stacks it below the
+// diagram canvas, so notes render reliably regardless of how the diagram above them was captured.
+function composeWithNotes(diagramCanvas, notesText, scale){
+  const font = f=> f+'px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif';
+  const gap = 20*scale, boxPad = 14*scale, fontSize = 13.5*scale, lineH = fontSize*1.45, headingH = 14*scale, headingGap = 10*scale;
+  const boxW = Math.min(Math.max(diagramCanvas.width*0.9, 260*scale), 640*scale);
+  const mctx = document.createElement('canvas').getContext('2d');
+  mctx.font = font(fontSize);
+  const lines = wrapCanvasText(mctx, notesText, boxW - boxPad*2);
+  const boxH = boxPad*2 + headingH + headingGap + lines.length*lineH;
+  const c = document.createElement('canvas');
+  c.width = diagramCanvas.width; c.height = diagramCanvas.height + gap + boxH + gap*0.6;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,c.width,c.height);
+  ctx.drawImage(diagramCanvas, 0, 0);
+  const boxX = (c.width - boxW)/2, boxY = diagramCanvas.height + gap;
+  roundRectPath(ctx, boxX, boxY, boxW, boxH, 10*scale);
+  ctx.fillStyle = '#201f2a'; ctx.fill(); ctx.strokeStyle = '#2d2c38'; ctx.lineWidth = Math.max(1,scale); ctx.stroke();
+  const tx = boxX + boxPad;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#9b96ab'; ctx.font = '700 '+font(11.5*scale);
+  ctx.fillText('NOTES', tx, boxY+boxPad+headingH*0.85);
+  ctx.fillStyle = '#eee8f0'; ctx.font = font(fontSize);
+  let ly = boxY+boxPad+headingH+headingGap+fontSize*0.9;
+  lines.forEach(l=>{ ctx.fillText(l, tx, ly); ly += lineH; });
+  return c;
+}
+// Draws a Strong/Medium pill directly (mirrors .badge: solid fill for strong, dashed outline for medium).
+function drawBadge(ctx, rightX, yCenter, text, color, strong, scale){
+  const fam = '-apple-system, "Segoe UI", Helvetica, Arial, sans-serif';
+  ctx.font = '800 '+(10.5*scale)+'px '+fam;
+  const padX = 13*scale, h = 24*scale, w = ctx.measureText(text).width + padX*2;
+  const bx = rightX - w, by = yCenter - h/2;
+  roundRectPath(ctx, bx, by, w, h, h/2);
+  if(strong){ ctx.fillStyle = color; ctx.fill(); ctx.fillStyle = '#fff'; }
+  else{ ctx.strokeStyle = color; ctx.lineWidth = Math.max(1,2*scale); ctx.setLineDash([4*scale,3*scale]); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = color; }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, bx+w/2, by+h/2+1);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+// The Tabulated view, drawn entirely on canvas (mirrors the .textcard markup) — html2canvas was
+// failing silently on its CSS Grid rows (.corritem), so this bypasses html2canvas completely.
+function tabulatedCanvas(it, scale){
+  const fam = '-apple-system, "Segoe UI", Helvetica, Arial, sans-serif';
+  const W = 640*scale, padX = 18*scale, gap = 12*scale, badgeColW = 128*scale;
+  const mctx = document.createElement('canvas').getContext('2d');
+
+  mctx.font = '700 '+(19*scale)+'px '+fam;
+  const titleLines = wrapCanvasText(mctx, it.title, W-padX*2).slice(0,3);
+  const headPadY = 14*scale, titleLH = 24*scale, ownerLH = 17*scale;
+  const headH = headPadY*2 + titleLines.length*titleLH + 4*scale + ownerLH;
+
+  const objs = sortByStrength(DATA.objectives.filter(o=> it.objCorr[o.id]>=1), it.objCorr);
+  const mets = sortByStrength(DATA.metrics.filter(m=> it.metCorr[m.id]>=1), it.metCorr);
+  function layoutRows(list, corrMap, color){
+    mctx.font = (13.5*scale)+'px '+fam;
+    const maxLabelW = W-padX*2-gap-badgeColW-26*scale;
+    return list.map(x=>{
+      const lines = wrapCanvasText(mctx, x.title, maxLabelW);
+      return {title:x.title, lines, h:Math.max(42*scale, lines.length*18*scale+20*scale), strong:(corrMap[x.id]||0)>=5, color};
+    });
+  }
+  const objRows = layoutRows(objs, it.objCorr, '#2f9e73');
+  const metRows = layoutRows(mets, it.metCorr, '#e0a634');
+  const h4H = 14*scale, h4Gap = 8*scale, rowGap = 7*scale, sectGap = 14*scale, emptyH = 18*scale;
+  const sectH = rows=> h4H+h4Gap + (rows.length ? rows.reduce((s,r)=>s+r.h,0)+(rows.length-1)*rowGap : emptyH);
+  const totalH = headH + sectGap + sectH(objRows) + sectGap + sectH(metRows) + sectGap*0.6;
+
+  const c = document.createElement('canvas'); c.width = W; c.height = totalH;
+  const ctx = c.getContext('2d'); ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,totalH);
+  roundRectPath(ctx,0,0,W,headH,10*scale); ctx.fillStyle = '#6a63d1'; ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = '700 '+(19*scale)+'px '+fam; ctx.textBaseline = 'alphabetic';
+  titleLines.forEach((l,i)=> ctx.fillText(l, padX, headPadY+(i+1)*titleLH-6*scale));
+  ctx.font = 'italic '+(13*scale)+'px '+fam; ctx.globalAlpha = 0.85;
+  ctx.fillText(it.owner || 'No owner set', padX, headPadY+titleLines.length*titleLH+4*scale+ownerLH-5*scale);
+  ctx.globalAlpha = 1;
+
+  let y = headH + sectGap;
+  function drawSection(label, rows){
+    ctx.fillStyle = '#9b96ab'; ctx.font = '700 '+(11*scale)+'px '+fam;
+    ctx.fillText(label.toUpperCase(), padX, y+h4H);
+    y += h4H+h4Gap;
+    if(!rows.length){ ctx.fillStyle = '#9b96ab'; ctx.font = 'italic '+(12.5*scale)+'px '+fam; ctx.fillText('None linked', padX, y+12*scale); y += emptyH; return; }
+    rows.forEach((r,i)=>{
+      roundRectPath(ctx, padX, y, W-padX*2, r.h, 8*scale); ctx.fillStyle = '#201f2a'; ctx.fill();
+      ctx.fillStyle = r.color; ctx.fillRect(padX, y, 5*scale, r.h);
+      ctx.fillStyle = '#eee8f0'; ctx.font = (13.5*scale)+'px '+fam; ctx.textBaseline = 'alphabetic';
+      const lh = 18*scale, textStartY = y + (r.h - r.lines.length*lh)/2 + lh*0.75;
+      r.lines.forEach((l,li)=> ctx.fillText(l, padX+16*scale, textStartY+li*lh));
+      drawBadge(ctx, W-padX-13*scale, y+r.h/2, r.strong?'Strong':'Medium', r.color, r.strong, scale);
+      y += r.h; if(i<rows.length-1) y += rowGap;
+    });
+  }
+  drawSection('Objectives', objRows);
+  y += sectGap;
+  drawSection('Metrics', metRows);
+  return c;
+}
+// The canvas for one initiative/view, notes composited underneath. Used by both the single
+// "Export .png" button and "Export all". Returns null if that initiative has no links to show.
+async function detailToCanvas(it, mode, scale){
+  const v = detailVisual(it, mode); if(!v) return null;
+  const diagramCanvas = mode==='text' ? tabulatedCanvas(it, scale) : await svgStringToCanvas(v, scale);
+  const notes = (it.notes||'').trim();
+  return notes ? composeWithNotes(diagramCanvas, notes, scale) : diagramCanvas;
+}
+async function exportPng(tab){
+  try{
+    if(tab==='detail'){
+      const it = DATA.initiatives.find(i=>i.id===detailInit);
+      const canvas = it && await detailToCanvas(it, detailMode, 3);
+      if(!canvas){ alert('Nothing to export here yet.'); return; }
+      const blob = await new Promise(r=>canvas.toBlob(r,'image/png'));
+      await saveFile(blob, 'hoshin-initiative-'+safeName(it.title)+'-'+detailMode+'.png');
+      return;
+    }
+    const t = getExportTarget(tab);
+    if(!t){ alert('Nothing to export here yet.'); return; }
+    const canvas = t.kind==='svg' ? await svgToCanvas(t.node, 3) : await htmlToCanvas(t.node, 3);
+    const blob = await new Promise(r=>canvas.toBlob(r,'image/png'));
+    await saveFile(blob, t.name + '.png');
+  }catch(e){ console.error(e); alert('PNG export failed: ' + e.message); }
+}
+
+// --- XLSX: three sheets, same look as the original Hoshin Kanri workbook ---
+const XL = { green:'FF63BE7B', greenLt:'FFBFE4CB', orange:'FFFFC000', yellowLt:'FFFDE499', goal:'FFD86ECC', goalLt:'FFF2CFEE', blue:'FF0F9ED5', blueLt:'FFCAEEFB', white:'FFFFFFFF', dark:'FF0E2841' };
+function buildWorkbook(ExcelJS, D){
+  const wb = new ExcelJS.Workbook();
+  const THIN = {style:'thin', color:{argb:'FF000000'}}, BORDER = {top:THIN,left:THIN,bottom:THIN,right:THIN};
+  const O = D.objectives, M = D.metrics, G = D.goals, I = D.initiatives;
+  const nO = O.length, nM = M.length, nG = G.length, nI = I.length;
+  const style = (cell,o)=>{
+    o = o||{};
+    cell.font = {name:'Calibri', size:11, bold:o.bold!==false, color:{argb:o.color||XL.dark}};
+    if(o.fill) cell.fill = {type:'pattern', pattern:'solid', fgColor:{argb:o.fill}};
+    cell.alignment = {horizontal:'center', vertical:'middle', wrapText:!!o.wrap, textRotation:o.rot||0};
+    cell.border = BORDER;
+  };
+  const put = (ws,r,c,v,o)=>{ const cell = ws.getCell(r,c); if(v!==undefined) cell.value = v; style(cell,o); return cell; };
+  // style the top-left cell first, then merge (merging copies that style onto the rest of the range)
+  const block = (ws,r1,c1,r2,c2,v,o)=>{ put(ws,r1,c1,v,o); if(r2>r1||c2>c1) ws.mergeCells(r1,c1,r2,c2); };
+  const addCF = (ws,r1,c1,r2,c2,maxColor)=>{
+    const ref = ws.getCell(r1,c1).address + ':' + ws.getCell(r2,c2).address;
+    ws.addConditionalFormatting({ref, rules:[
+      {type:'colorScale', priority:1, cfvo:[{type:'num',value:0},{type:'num',value:5}], color:[{argb:'FFFCFCFF'},{argb:maxColor}]},
+      {type:'iconSet', priority:2, iconSet:'5Quarters', showValue:false, cfvo:[{type:'num',value:0},{type:'num',value:1},{type:'num',value:2},{type:'num',value:4},{type:'num',value:5}]}
+    ]});
+  };
+  const est = (txt,w)=> Math.max(1, Math.ceil(String(txt).length/(w*0.95)));
+
+  // ---- Sheet 1: Full Matrix (real values, center block, padded so the center stays centered) ----
+  (function(){
+    const ws = wb.addWorksheet('Full Matrix');
+    const maxC = Math.max(nO,nM), maxR = Math.max(nG,nI);
+    const oPad = maxC-nO, gPad = maxR-nG, iPad = maxR-nI, mPad = maxC-nM;
+    const o0 = 2+oPad, L0 = o0+nO, m0 = L0+5, r0 = 2+gPad, hb = r0+nG, i0 = hb+5;
+    const lastCol = m0+nM+mPad, lastRow = i0+nI+iPad;
+    for(let c=1;c<=lastCol;c++) ws.getColumn(c).width = 8.89;
+    ws.properties.defaultRowHeight = 48;
+    for(let r=1;r<=lastRow;r++) ws.getRow(r).height = 48;
+    G.forEach((g,gi)=>{
+      const r = r0+gi;
+      O.forEach((o,oi)=> put(ws,r,o0+oi,g.objCorr[o.id]||0));
+      block(ws,r,L0,r,L0+4,g.title,{fill:XL.goalLt});
+      M.forEach((m,mi)=> put(ws,r,m0+mi,'-'));
+    });
+    O.forEach((o,oi)=> block(ws,hb,o0+oi,hb+4,o0+oi,o.title,{fill:XL.greenLt,rot:90,wrap:true}));
+    M.forEach((m,mi)=> block(ws,hb,m0+mi,hb+4,m0+mi,m.title,{fill:XL.yellowLt,rot:-90,wrap:true}));
+    put(ws,hb,L0); put(ws,hb,L0+4); put(ws,hb+4,L0); put(ws,hb+4,L0+4);
+    block(ws,hb,L0+1,hb,L0+3,'CEO Goals',{fill:XL.goal,color:XL.white});
+    block(ws,hb+1,L0,hb+3,L0,'Objectives',{fill:XL.green,rot:90});
+    block(ws,hb+1,L0+1,hb+3,L0+3,undefined,{});
+    block(ws,hb+1,L0+4,hb+3,L0+4,'Metrics',{fill:XL.orange,rot:-90});
+    block(ws,hb+4,L0+1,hb+4,L0+3,'Initiatives (Owners)',{fill:XL.blue,color:XL.white});
+    I.forEach((it,ii)=>{
+      const r = i0+ii;
+      O.forEach((o,oi)=> put(ws,r,o0+oi,it.objCorr[o.id]||0));
+      block(ws,r,L0,r,L0+4,it.title+(it.owner?' ('+it.owner+')':''),{fill:XL.blueLt});
+      M.forEach((m,mi)=> put(ws,r,m0+mi,it.metCorr[m.id]||0));
+    });
+    if(nG&&nO) addCF(ws,r0,o0,r0+nG-1,o0+nO-1,XL.goal);
+    if(nI&&nO) addCF(ws,i0,o0,i0+nI-1,o0+nO-1,XL.green);
+    if(nI&&nM) addCF(ws,i0,m0,i0+nI-1,m0+nM-1,XL.orange);
+  })();
+
+  // ---- Sheet 2: Objective, Initiatives, Metrics ----
+  // (31 characters — the longest name Excel allows — so the trailing "s" of "Objectives" is dropped, exactly as in the original workbook)
+  (function(){
+    const ws = wb.addWorksheet('Objective, Initiatives, Metrics');
+    const oc0 = 2, cIdx = oc0+nO+1, cTitle = cIdx+1, cOwner = cTitle+1, m0 = cOwner+2;
+    ws.getColumn(1).width = 8.89;
+    for(let i=0;i<nO;i++) ws.getColumn(oc0+i).width = 15.89;
+    ws.getColumn(oc0+nO).width = 2.66; ws.getColumn(cIdx).width = 3; ws.getColumn(cTitle).width = 18.89; ws.getColumn(cOwner).width = 11.89; ws.getColumn(cOwner+1).width = 2.66;
+    for(let i=0;i<nM;i++) ws.getColumn(m0+i).width = 15.89;
+    ws.getRow(2).height = 21.6;
+    if(nO) block(ws,2,oc0,2,oc0+nO-1,'Objectives',{fill:XL.green});
+    if(nM) block(ws,2,m0,2,m0+nM-1,'Metrics',{fill:XL.orange});
+    let h4 = 33.6;
+    O.forEach((o,i)=>{ put(ws,3,oc0+i,nO-i,{fill:XL.greenLt,wrap:true}); put(ws,4,oc0+i,o.title,{fill:XL.greenLt,wrap:true}); h4 = Math.max(h4, 15.5*est(o.title,15.89)); });
+    M.forEach((m,i)=>{ put(ws,3,m0+i,i+1,{fill:XL.yellowLt,wrap:true}); put(ws,4,m0+i,m.title,{fill:XL.yellowLt,wrap:true}); h4 = Math.max(h4, 15.5*est(m.title,15.89)); });
+    ws.getRow(4).height = h4;
+    put(ws,4,cIdx,'#',{fill:XL.blue,color:XL.white}); put(ws,4,cTitle,'Initiatives',{fill:XL.blue,color:XL.white}); put(ws,4,cOwner,'Owners',{fill:XL.blue,color:XL.white});
+    I.forEach((it,ii)=>{
+      const r = 6+ii;
+      ws.getRow(r).height = Math.max(33.6, 15.5*Math.max(est(it.title,18.89), est(it.owner||'',11.89)));
+      O.forEach((o,oi)=> put(ws,r,oc0+oi,it.objCorr[o.id]||0,{bold:false}));
+      put(ws,r,cIdx,ii+1,{fill:XL.blueLt,wrap:true}); put(ws,r,cTitle,it.title,{fill:XL.blueLt,wrap:true}); put(ws,r,cOwner,it.owner||'',{fill:XL.blueLt,wrap:true,bold:false});
+      M.forEach((m,mi)=> put(ws,r,m0+mi,it.metCorr[m.id]||0,{bold:false}));
+    });
+    if(nI&&nO) addCF(ws,6,oc0,5+nI,oc0+nO-1,XL.green);
+    if(nI&&nM) addCF(ws,6,m0,5+nI,m0+nM-1,XL.orange);
+  })();
+
+  // ---- Sheet 3: Goals, Objectives ----
+  (function(){
+    const ws = wb.addWorksheet('Goals, Objectives');
+    const oc0 = 2, cIdx = oc0+nO+1, cTitle = cIdx+1;
+    ws.getColumn(1).width = 8.89;
+    for(let i=0;i<nO;i++) ws.getColumn(oc0+i).width = 15.89;
+    ws.getColumn(oc0+nO).width = 2.66; ws.getColumn(cIdx).width = 3; ws.getColumn(cTitle).width = 43;
+    ws.getRow(2).height = 21.6;
+    if(nO) block(ws,2,oc0,2,oc0+nO-1,'Objectives',{fill:XL.green});
+    let h4 = 33.6;
+    O.forEach((o,i)=>{ put(ws,3,oc0+i,nO-i,{fill:XL.greenLt,wrap:true}); put(ws,4,oc0+i,o.title,{fill:XL.greenLt,wrap:true}); h4 = Math.max(h4, 15.5*est(o.title,15.89)); });
+    ws.getRow(4).height = h4;
+    put(ws,4,cIdx,'#',{fill:XL.goal,color:XL.white}); put(ws,4,cTitle,'CEO Goals',{fill:XL.goal,color:XL.white});
+    G.forEach((g,gi)=>{
+      const r = 6+gi;
+      ws.getRow(r).height = Math.max(33.6, 15.5*est(g.title,43));
+      O.forEach((o,oi)=> put(ws,r,oc0+oi,g.objCorr[o.id]||0,{bold:false}));
+      put(ws,r,cIdx,nG-gi,{fill:XL.goalLt,wrap:true}); put(ws,r,cTitle,g.title,{fill:XL.goalLt,wrap:true});
+    });
+    if(nG&&nO) addCF(ws,6,oc0,5+nG,oc0+nO-1,XL.goal);
+  })();
+  return wb;
+}
+async function exportXlsx(){
+  try{
+    if(!window.ExcelJS) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js');
+    const wb = buildWorkbook(window.ExcelJS, DATA);
+    const buf = await wb.xlsx.writeBuffer();
+    await saveFile(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), 'Hoshin-Kanri-Matrix.xlsx');
+  }catch(e){ console.error(e); alert('Excel export failed: ' + e.message); }
+}
+// --- Export all: one .zip with every PNG (all tabs, all toggles, every initiative in all 3 views) + the .xlsx ---
+function safeName(s){ return String(s).replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,' ').trim().slice(0,60) || 'untitled'; }
+function collectExportItems(){
+  const items = [], pad = n=> String(n).padStart(2,'0');
+  const g = goalsVisualInner();
+  if(g) items.push({path:'1 - Goals.png', kind:'html', html:'<div id="goalsVisual">'+g+'</div>', width:1200});
+  if(DATA.initiatives.length){
+    const inits = DATA.initiatives.map(i=>({...i, _grey: Object.values(i.objCorr).every(v=>v===0) && Object.values(i.metCorr).every(v=>v===0)}));
+    const w = Math.max(1100, (document.querySelector('main').clientWidth||1400) - 86);
+    items.push({path:'2 - Overview.png', kind:'svg', html:buildFlow(DATA.objectives, inits, DATA.metrics, w)});
+  }
+  items.push({path:'3 - Matrix - Full Matrix.png', kind:'html', html:'<div>'+buildFullMatrixTable()+'</div>', select:'table'});
+  if(DATA.initiatives.length) items.push({path:'3 - Matrix - Objectives, Initiatives, Metrics.png', kind:'html', html:tableOim(), select:'table'});
+  if(DATA.goals.length) items.push({path:'3 - Matrix - Goals, Objectives.png', kind:'html', html:tableGoalsObj(), select:'table'});
+  DATA.initiatives.forEach((it,i)=>{
+    const base = '4 - Initiative-Wise Details/'+pad(i+1)+' '+safeName(it.title)+' - ';
+    [['sankey','Sankey'],['bowtie','Bow-tie'],['text','Tabulated']].forEach(([m,label])=>{
+      if(!detailVisual(it,m)) return;
+      items.push({path:base+label+'.png', kind:'detail', it, mode:m});
+    });
+  });
+  return items;
+}
+async function itemToCanvas(item, scale){
+  if(item.kind==='detail') return await detailToCanvas(item.it, item.mode, scale);
+  if(item.kind==='htmlstring') return await htmlStringToCanvas(item.html, scale);
+  const host = document.createElement('div');
+  host.style.cssText = 'position:absolute;left:-99999px;top:0;'+(item.width?'width:'+item.width+'px;':'width:max-content;');
+  host.innerHTML = item.html;
+  document.body.appendChild(host);
+  try{
+    if(item.kind==='svg') return await svgToCanvas(host.querySelector('svg'), scale);
+    return await htmlToCanvas(item.select ? host.querySelector(item.select) : host.firstElementChild, scale);
+  } finally { host.remove(); }
+}
+async function exportAll(){
+  try{
+    setOverlay('Preparing export…');
+    if(!window.JSZip) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+    if(!window.ExcelJS) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js');
+    if(!window.html2canvas) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    const zip = new JSZip(), items = collectExportItems();
+    zip.file('Hoshin-Kanri-Matrix.xlsx', await buildWorkbook(window.ExcelJS, DATA).xlsx.writeBuffer());
+    zip.file('hoshin-state.json', serializeState()); // drag this zip back onto "Open File" to restore this exact state, incl. notes
+    for(let i=0;i<items.length;i++){
+      setOverlay('Rendering images… '+(i+1)+' / '+items.length);
+      const c = await itemToCanvas(items[i], 3);
+      zip.file(items[i].path, await new Promise(r=>c.toBlob(r,'image/png')));
+      c.width = c.height = 0;
+      await new Promise(r=>setTimeout(r,0));
+    }
+    setOverlay('Zipping…');
+    const blob = await zip.generateAsync({type:'blob'});
+    clearOverlay();
+    await saveFile(blob, 'Hoshin-Kanri-Export.zip');
+  }catch(e){ console.error(e); clearOverlay(); alert('Export all failed: ' + e.message); }
+  finally { clearOverlay(); }
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-export]'); if(!b) return;
+  const kind = b.dataset.export;
+  if(kind==='all') exportAll();
+  else if(kind==='png') exportPng(document.querySelector('.tab.active').dataset.tab);
+  else exportXlsx();
+});
+
+function renderAll(){ renderGoals(); renderOverview(); renderMatrix(); renderDetail(); }
+renderAll();
+</script>
+</body>
+</html>
