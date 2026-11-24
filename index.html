@@ -640,9 +640,17 @@ function renameEntity(kind, id){
   else if(kind==='goal') entity = DATA.goals.find(g=>g.id===id);
   else if(kind==='init') entity = DATA.initiatives.find(i=>i.id===id);
   if(!entity) return;
-  const val = prompt('Rename (leave blank to delete):', entity.title);
+  const isInit = kind==='init';
+  // Initiatives: the bracket holds the owners, e.g. "Marketing (Amit, Kapil)".
+  const current = isInit && entity.owner ? entity.title+' ('+entity.owner+')' : entity.title;
+  const val = prompt(isInit ? 'Rename (leave blank to delete). Put owners in brackets, e.g. Marketing (Amit, Kapil):' : 'Rename (leave blank to delete):', current);
   if(val===null) return;
   const trimmed = val.trim();
+  let newTitle = trimmed, newOwner = '';
+  if(isInit && trimmed){
+    const m = trimmed.match(/^(.*?)\s*\(([^()]*)\)\s*$/);
+    if(m){ newTitle = m[1].trim() || entity.title; newOwner = m[2].trim(); }
+  }
   pushUndo();
   if(!trimmed){
     if(kind==='obj') deleteObjective(id);
@@ -651,7 +659,8 @@ function renameEntity(kind, id){
     else if(kind==='init') DATA.initiatives = DATA.initiatives.filter(i=>i.id!==id);
     if(detailInit===id) detailInit = null;
   } else {
-    entity.title = trimmed;
+    entity.title = newTitle;
+    if(isInit) entity.owner = newOwner;
   }
   renderAll();
 }
@@ -729,7 +738,7 @@ function renderMatrix(){
   document.getElementById('mtGoalObj').onclick = ()=>{ matrixMode='goalobj'; renderMatrix(); };
   const box = document.getElementById('matrixTable');
   if(matrixMode==='full'){
-    box.innerHTML = `<p class="hint">This is the one place you edit data. Double-click any title to rename it (clear the text to delete that row or column). Click a correlation cell to cycle None → Medium → Strong → None. Use the white "+" buttons to add a goal, objective, initiative or metric. The center cell is fixed.</p>
+    box.innerHTML = `<p class="hint">This is the one place you edit data. Double-click any title to rename it (clear the text to delete that row or column). For initiatives, put owners in brackets, e.g. Marketing (Amit, Kapil). Click a correlation cell to cycle None → Medium → Strong → None. Use the white "+" buttons to add a goal, objective, initiative or metric. The center cell is fixed.</p>
     <div class="xm-toolbar">
       <button id="xmUndo" ${undoStack.length?'':'disabled'}>↶ Undo</button>
       <button id="xmRedo" ${redoStack.length?'':'disabled'}>↷ Redo</button>
