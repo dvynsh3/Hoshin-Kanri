@@ -1,0 +1,176 @@
+{
+ "app": "hoshin-kanri-live",
+ "version": 1,
+ "DATA": {
+  "objectives": [
+   {
+    "id": "x1",
+    "title": "Improve support quality",
+    "color": "hsl(210 50% 42%)"
+   },
+   {
+    "id": "x2",
+    "title": "Build a partner channel",
+    "color": "hsl(150 58% 50%)"
+   },
+   {
+    "id": "x3",
+    "title": "Shorten onboarding time",
+    "color": "hsl(175 50% 58%)"
+   },
+   {
+    "id": "x4",
+    "title": "Increase customer retention",
+    "color": "hsl(255 58% 42%)"
+   },
+   {
+    "id": "x5",
+    "title": "Launch in two new markets",
+    "color": "hsl(195 50% 50%)"
+   }
+  ],
+  "metrics": [
+   {
+    "id": "x6",
+    "title": "Revenue share, new markets",
+    "color": "hsl(50 50% 42%)"
+   },
+   {
+    "id": "x7",
+    "title": "Net revenue retention",
+    "color": "hsl(5 58% 50%)"
+   },
+   {
+    "id": "x8",
+    "title": "Days to first value",
+    "color": "hsl(90 50% 58%)"
+   },
+   {
+    "id": "x9",
+    "title": "Active partner count",
+    "color": "hsl(35 58% 42%)"
+   },
+   {
+    "id": "x10",
+    "title": "Customer satisfaction",
+    "color": "hsl(15 50% 50%)"
+   },
+   {
+    "id": "x11",
+    "title": "Blog posts published",
+    "color": "hsl(115 50% 50%)"
+   }
+  ],
+  "initiatives": [
+   {
+    "id": "x12",
+    "title": "International market research",
+    "owner": "Priya, Marco",
+    "objCorr": {
+     "x5": 5,
+     "x2": 2
+    },
+    "metCorr": {
+     "x6": 2
+    },
+    "notes": "Dummy note: shortlist markets by language coverage and partner presence before localisation starts."
+   },
+   {
+    "id": "x13",
+    "title": "Localise product and pricing",
+    "owner": "Sam, Lena",
+    "objCorr": {
+     "x5": 5,
+     "x3": 2
+    },
+    "metCorr": {
+     "x6": 5,
+     "x10": 2
+    },
+    "notes": ""
+   },
+   {
+    "id": "x14",
+    "title": "Optimise customer success programme",
+    "owner": "Ana, Tom",
+    "objCorr": {
+     "x4": 5,
+     "x1": 2,
+     "x3": 2
+    },
+    "metCorr": {
+     "x7": 5,
+     "x10": 5
+    },
+    "notes": "Dummy note: owns the retention playbook."
+   },
+   {
+    "id": "x15",
+    "title": "Partner programme pilot",
+    "owner": "Marco, Ravi",
+    "objCorr": {
+     "x2": 5,
+     "x5": 2
+    },
+    "metCorr": {
+     "x9": 5,
+     "x6": 2
+    },
+    "notes": ""
+   },
+   {
+    "id": "x16",
+    "title": "Self-serve onboarding redesign",
+    "owner": "Lena, Ravi",
+    "objCorr": {
+     "x3": 5,
+     "x4": 2
+    },
+    "metCorr": {
+     "x8": 5,
+     "x10": 2
+    },
+    "notes": ""
+   },
+   {
+    "id": "x17",
+    "title": "Internal wiki clean-up",
+    "owner": "Tom",
+    "objCorr": {},
+    "metCorr": {},
+    "notes": "Dummy note: no objective or metric linked. Revise or drop."
+   }
+  ],
+  "goals": [
+   {
+    "id": "x18",
+    "title": "Deliver a best-in-class customer experience",
+    "objCorr": {
+     "x3": 5,
+     "x1": 5,
+     "x4": 2
+    }
+   },
+   {
+    "id": "x19",
+    "title": "Grow recurring revenue",
+    "objCorr": {
+     "x4": 5,
+     "x2": 5,
+     "x5": 2
+    }
+   },
+   {
+    "id": "x20",
+    "title": "Become a recognised brand in new markets",
+    "objCorr": {
+     "x5": 5,
+     "x2": 2
+    }
+   }
+  ]
+ },
+ "idCounter": 21,
+ "objColorIdx": 5,
+ "metColorIdx": 6
+}
