@@ -6,7 +6,7 @@
 [![Live demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://dvynsh3.github.io/Hoshin-Kanri/)
 [![Latest release](https://img.shields.io/github/v/release/dvynsh3/Hoshin-Kanri)](../../releases)
 
-**Try it:** [live demo](https://dvynsh3.github.io/Hoshin-Kanri/)  ·  **Status:** active  ·  **Platform:** browser (Chrome or Edge recommended)
+**Try it:** [live demo](https://dvynsh3.github.io/Hoshin-Kanri/)  ·  **Status:** active  ·  **Platform:** browser (Chrome or Edge recommended), works fully offline
 
 <!-- SCREENSHOT: hero -->
 ![The Full Matrix view with three goals above, five objectives on the left, six metrics on the right and six initiatives below a central X, filled with colour-coded strong and medium links (dummy data).](docs/screenshots/hoshin-kanri-hero.png)
@@ -35,7 +35,7 @@
 ![The Initiative-Wise Details tab showing a Sankey diagram for one initiative with its objectives and metrics, and a notes box underneath (dummy data).](docs/screenshots/hoshin-kanri-flow-2.png)
 
 ## Quick start
-1. Open the [live demo](https://dvynsh3.github.io/Hoshin-Kanri/), or download `index.html` and double-click it.
+1. Open the [live demo](https://dvynsh3.github.io/Hoshin-Kanri/), or download `index.html` and double-click it. The file is about 2 MB and needs no connection.
 2. Click **Open File** and choose [`examples/sample-session.json`](examples/sample-session.json) to load a dummy session. To start blank, skip this step.
 3. Go to **Matrix** and stay on **Full Matrix**. Double-click a title to rename it, click a cell to change a link, use the white **+** buttons to add rows or columns.
 4. Open **Overview** and click an initiative.
@@ -58,20 +58,20 @@ Expected result: the matrix and the other tabs update as you edit, and clicking 
 - Single user, on one device. There is no sharing or multi-user editing, and data lives in the browser tab only. It is not saved automatically, so refreshing the page loses it. Use **Export all** to save a session.
 - Excel import reads the template's fixed layout: up to 15 objectives, 15 metrics, 15 initiatives and 5 goals. Notes are not carried by Excel import.
 - Sankey labels longer than 28 characters are shortened with an ellipsis.
-- Needs internet once. Viewing and editing work without a connection, but opening `.xlsx`, `.xlsm` or `.zip` files and all exports use four libraries loaded from a CDN (SheetJS on page load; ExcelJS, JSZip and html2canvas on first use). Your browser normally keeps them after that, but this is not guaranteed. For a copy that never needs a connection, run `python3 tools/make-offline.py` once (see below).
+- The file is about 2 MB because four libraries (SheetJS, ExcelJS, JSZip and html2canvas) are built into it. Earlier builds loaded them from the internet; from v1.3.0 nothing is loaded from outside.
 - Chrome or Edge recommended. The app opens on the Goals tab.
 - Excel limits sheet names to 31 characters, so the second exported sheet is named "Objective, Initiatives, Metrics".
 
 ## Privacy and data
 - Everything you type stays in your browser. The tool has no backend, no analytics and makes no network calls of its own.
-- The only requests are for the four libraries above from `cdnjs.cloudflare.com`, so that host sees your IP address when they load. The offline copy made by `tools/make-offline.py` makes none.
+- Nothing is requested from the internet. The libraries are built into the file, so the page works with no connection. (Builds before v1.3.0 loaded them from `cdnjs.cloudflare.com`.)
 - Exports are created on your device and saved by your browser. Sample data in this repo is fictional.
 
 ## Evidence
 A test run was conducted with a few people. No usage numbers collected yet.
 
 ## Version history
-Latest: **v1.2.0** (2026-10-16). Full detail in [CHANGELOG.md](CHANGELOG.md) and [Releases](../../releases).
+Latest: **v1.3.0** (2026-11-26). Full detail in [CHANGELOG.md](CHANGELOG.md) and [Releases](../../releases).
 
 | Version | Date | What changed for the user |
 |---|---|---|
@@ -81,8 +81,9 @@ Latest: **v1.2.0** (2026-10-16). Full detail in [CHANGELOG.md](CHANGELOG.md) and
 | v0.14.0 | 2026-09-29 | Export all, notes per initiative, and restoring a saved session. |
 | v1.0.0 | 2026-09-30 | Sankey and Bow-tie PNG exports fixed (they were solid black). |
 | v1.2.0 | 2026-10-16 | Initiative owners editable in the matrix, e.g. `Marketing (Amit, Kapil)`. |
+| v1.3.0 | 2026-11-26 | Fully offline: the libraries are built into the file, so nothing is loaded from the internet. |
 
-Earlier versions are archived builds restored from local backups, uploaded to GitHub in November 2026; the source at each tag is the repository snapshot at upload, not the original code for that version. I built every version offline and uploaded them all to GitHub at once, so dates are the saved-file dates of each build, not release dates, and the commit history is not a record of the build.
+Versions v0.1.0 to v1.2.0 are archived builds restored from local backups, uploaded to GitHub together in November 2026; the source at each tag is the repository snapshot at upload, not the original code for that version. I built them offline, so their dates are the saved-file dates of each build, not release dates, and the commit history is not a record of the build. v1.3.0 was built after that upload, and every future build will have the libraries built in.
 
 ## Feedback
 Open an [issue](../../issues). Useful to include: browser and version, what you clicked, what you expected, and a screenshot using dummy data. Please do not attach files with confidential strategy content.
@@ -92,7 +93,7 @@ I owned the problem, the scope, the trade-offs and the testing: I specified each
 
 ## Credits
 - Example data is fictional. Its theme is loosely based on the generic international-expansion example in [Asana's Hoshin Kanri guide](https://asana.com/resources/hoshin-kanri).
-- Libraries loaded from a CDN: SheetJS, ExcelJS, JSZip and html2canvas. See each project for its licence. The offline copy built by `tools/make-offline.py` embeds them with their own licence headers.
+- Libraries built into `index.html` since v1.3.0: SheetJS 0.18.5, ExcelJS 4.4.0, JSZip 3.10.1 and html2canvas 1.4.1, each with its own licence header kept in the file. See each project for its licence.
 
 ## Licence
 [MIT](LICENSE). Copyright (c) 2026 dvynsh3. The embedded libraries keep their own licences.
@@ -120,16 +121,12 @@ I owned the problem, the scope, the trade-offs and the testing: I specified each
 - **Export .png**: current view only, black background, up to 3x resolution.
 - **Export all** (top right): one zip with every PNG, the `.xlsx` and `hoshin-state.json`.
 
-**Fully offline copy**
-Run `python3 tools/make-offline.py` once, with an internet connection. It downloads the four libraries, embeds them in a copy of `index.html` and writes `Hoshin-Kanri-Live-offline.html`, which needs no connection at all. If you download the libraries yourself, use `--lib-dir <folder>`. Python 3 only, no extra packages.
-
 **Repo layout**
 ```
-index.html        The whole tool (HTML + CSS + JS in one file), currently v1.2.0
+index.html        The whole tool, libraries included (HTML + CSS + JS in one file), currently v1.3.0
 examples/         sample-session.json, a dummy session to load with Open File
 templates/        FULL Hoshin Kanri.xlsx is the template Open File imports;
                   Hoshin Kanri.xlsx is its first version, kept for archive only
-tools/            make-offline.py, builds the fully offline copy
 exports/          Sample output generated from the template's placeholder text
 docs/screenshots/ Images used in this README (dummy data)
 CHANGELOG.md      Release history

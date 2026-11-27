@@ -1,13 +1,14 @@
 # Changelog
 
-All notable changes to **Hoshin Kanri Live**, a single-file HTML tool for running a Hoshin Kanri session live. Newest release first. Release dates are taken from the file timestamps of each saved build.
+All notable changes to **Hoshin Kanri Live**, a single-file HTML tool for running a Hoshin Kanri session live. Newest release first. Builds up to v1.2.0 were made offline and uploaded to GitHub together, so the dates below are the saved-file dates of each build, not release dates. v1.3.0 was built afterwards.
 
 ## Version map
 
-The original build numbers (v1 to v18) map to release numbers as follows.
+The original build numbers (v1 to v18) map to release numbers as follows. v1.3.0 was built after that archive.
 
 | Original | Release | Date | File |
 |---|---|---|---|
+| built after the archive | v1.3.0 | 2026-11-26 | `Hoshin-Kanri-Live-v1.3.0.html` |
 | v18 | v1.2.0 | 2026-10-16 | `Hoshin-Kanri-Live-v1.2.0.html` |
 | v17 | v1.1.0 | 2026-10-07 | `Hoshin-Kanri-Live-v1.1.0.html` |
 | v16 | v1.0.0 | 2026-09-30 | `Hoshin-Kanri-Live-v1.0.0.html` |
@@ -26,6 +27,23 @@ The original build numbers (v1 to v18) map to release numbers as follows.
 | v3 | v0.3.0 | 2026-09-23 | `Hoshin-Kanri-Live-v0.3.0.html` |
 | v2 | v0.2.0 | 2026-09-23 | `Hoshin-Kanri-Live-v0.2.0.html` |
 | v1 | v0.1.0 | 2026-09-23 | `Hoshin-Kanri-Live-v0.1.0.html` |
+
+## [Unreleased]
+
+## [v1.3.0] - 2026-11-26
+Fully offline. The four libraries are now built into the file, so nothing is loaded from the internet. Every future build will ship this way.
+
+### Added
+- **Libraries built in.** SheetJS 0.18.5, ExcelJS 4.4.0, JSZip 3.10.1 and html2canvas 1.4.1 are embedded in `index.html` with their own licence headers. Opening `.xlsx` / `.xlsm` / `.zip` files, Export .xlsx, Export .png and Export all no longer need a connection or a cached copy.
+- **`examples/sample-session.json`.** A dummy session (fictional international-expansion example) that loads through Open File, used for the README screenshots.
+- **`LICENSE` (MIT)** and a rewritten **`README.md`** with screenshots in `docs/screenshots/`.
+
+### Changed
+- **File size.** `index.html` grows from about 77 KB to about 2.1 MB because the libraries are inside it. The app code is unchanged from [v1.2.0](#v120---2026-10-16).
+- **No network requests.** The tool makes none at all; previously it requested the libraries from `cdnjs.cloudflare.com`.
+
+### Removed
+- The CDN `<script>` tag and the lazy download of ExcelJS, JSZip and html2canvas. The tool still checks for each library before use, so it behaves as before.
 
 ## [v1.2.0] - 2026-10-16
 Owners can now be edited from the Full Matrix.
@@ -52,11 +70,11 @@ First stable release. Fixes the all-black Sankey and Bow-tie PNGs from Export al
 - **Sankey and Bow-tie PNGs were 100% solid black** (confirmed by inspecting the pixels of an exported zip). html2canvas renders SVGs styled through CSS classes as blank black. These views no longer use it: the SVG is attached to the real page so styles resolve, then rasterised to a canvas.
 - **Notes in exports** are drawn directly on a canvas with manual text wrapping and stacked under the diagram, instead of going through html2canvas.
 
-### Known gaps (fixed in the next build)
-- Tabulated PNGs still used html2canvas and exported incorrectly.
-
 ## [v0.15.0] - 2026-09-30
 Open File fix for the hosted page.
+
+### Removed
+- The File System Access API open-file path (`showOpenFilePicker`) and its polling code.
 
 ### Fixed
 - **File upload not being read correctly.** The File System Access API (`showOpenFilePicker`) and its polling code are replaced with a plain hidden `<input type="file">` triggered by the button, which works reliably inside sandboxed pages. Picking the same file again now works (the input is reset after each selection). Reload now opens the file picker.
@@ -101,8 +119,11 @@ Layout and look declared final. Input moves from the Excel file to the page itse
 - **Start from scratch.** The app opens empty with no file loaded, so a session can be built purely with the "+" buttons.
 
 ### Changed
-- **Excel is now a one-time import.** Open Excel File converts the workbook into the editable model. The 2-second background polling is removed, since it would have overwritten on-page edits. Reload now re-imports the file manually.
+- **Excel is now a one-time import.** Open Excel File converts the workbook into the editable model. Reload now re-imports the file manually.
 - Overview and Matrix hint text updated (click any block to highlight; how to edit).
+
+### Removed
+- **Automatic 2-second re-reading of the Excel file** (and its live indicator), since it would have overwritten edits made on the page.
 
 ## [v0.11.0] - 2026-09-25
 Hotfix for the trapezoid colour.
@@ -121,11 +142,11 @@ Clickable objectives and metrics, a pill list for choosing initiatives, and a tr
 ### Changed
 - **Sankey: owner names** now appear inside the initiative block under the title, as in every other view.
 
+### Removed
+- **Initiative dropdown** in Initiative-Wise Details, replaced by the pill list.
+
 ### Fixed
 - **Sankey gaps next to the initiative block.** Ribbons now extend 6px into the block and are covered by it, so the seam is flush with no hairline gap.
-
-### Known gaps (fixed in the next build)
-- The trapezoid rendered solid black instead of the initiative purple.
 
 ## [v0.9.0] - 2026-09-25
 Descending order in the two remaining Matrix toggles, matching the Full Matrix you called "absolutely perfect".
@@ -158,9 +179,6 @@ Colour fixes and the Full Matrix laid out in the exact row/column order you spec
 
 ### Fixed
 - **"Initiatives" / "Goals" header cells now have a real fill (blue / purple).** A more specific CSS rule (`th.rowlabel`) was overriding the background, so only the text colour had changed in [v0.5.0](#v050---2026-09-24).
-
-### Known gaps (fixed in the next build)
-- Goal rows still appeared after the X cell instead of above it, and a last row of 1–2 goals stretched across the grid instead of centring.
 
 ## [v0.5.0] - 2026-09-24
 Metric colours, dashed Medium pills and the Full Matrix rebuilt as a spreadsheet-style table modelled on your reference image.
@@ -232,11 +250,6 @@ First working build: a single self-contained HTML file that turns the filled-in 
 - **Overview tab.** Objectives (green), Initiatives (purple-blue, owner underneath) and Metrics (yellow) left to right as blocks, joined by curved flow bands following the correlations. Initiatives with a title but no links are greyed out.
 - **Full Matrix tab.** Two scrollable toggles mirroring the workbook: "Full Matrix" and "Objectives, Initiatives, Metrics", with ● (strong) and ◐ (medium) icons.
 - **Initiative Detail tab.** A dropdown to pick an initiative and three views: **Sankey** (objectives → initiative → metrics), **Bow-tie**, and **Text detail** (objectives and metrics listed with correlation bars). Every objective and metric has a fixed colour per item number, so it stays the same wherever it repeats.
-
-### Known gaps (fixed in the next build)
-- Goals tab showed no goals and initiative owners were missing: cells were read by array position, which was one column off on both sheets ([v0.2.0](#v020---2026-09-23)).
-- Text inside diagram blocks was too large and cut off, and the diagrams scaled oddly.
-- The app opens on the Goals tab, although the brief asked for Overview as the default view. This is unchanged through [v1.2.0](#v120---2026-10-16).
 
 ---
 
